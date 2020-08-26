@@ -8,6 +8,7 @@
     "@testing-library/user-event": "^7.2.1",
     "dom": "0.0.3",
     "git-pages": "^0.8.1",
+    "jquery": "^3.5.1",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-router": "^5.2.0",

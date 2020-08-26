@@ -14,3 +14,15 @@
     */
       border-bottom: 2px solid balck;
   }
+
+  #explain_title{
+    margin-top: 8%;
+    color: black;
+    font-size:25px;
+  }
+
+  #explain_sub{
+    color: black;
+    font-size:15px;
+  }
+

@@ -1,38 +1,26 @@
 import React from "react"
 import "./Apply.css"
-
 function Apply() {
 
     return (
         <>
+        
             <div className="Main" id="main">
                 <p id="title"> 티키타카 </p>
-                <span id="sub">
-                <p>안녕하세요! 온라인 미팅 콘텐츠 티키타카입니다.😄 </p>
-                <p>티키타카란, 💥코로나 시국에 새로운 사람을 알아갈 기회가 없는 문제💥를 해결하기 위한 콘텐츠입니다!!</p>
-
-                <p>코로나 시국에 맞춰, 오프라인 대학생 다대다 미팅을, 온라인 버전으로 만들었으며, 그에 따라 오프라인 술자리 게임도 “온라인 버전”으로 재탄생하였습니다💕
-                </p>
-                <p>장소에 구애받지 않고, “Zoom”에 접속만 할 수 있다면, 집, 기숙사 등 어디서든 참여가 가능합니다! 또한, 어색함을 해결하기 위해 진행 매뉴얼을 숙지한 사회자가 원활한 콘텐츠 진행을 도와드립니다👋👋👋
-                </p>
-                <p>* 티키타카는 안전하고 원활한 진행을 위하여, 참여자 본인 신분 확인 과정을 거치며, 온라인 사고 대처 메뉴얼을 별도로 만들어 두었습니다. 또한, 사전 알파 테스트를 통해 체계적인 진행 방식을 구축해두었습니다!
-                </p>
-                <p>모집 일정은 8/22 ~ 8/25 이며, 참여를 희망하는 분은 아래의 구글 독스로 신청 부탁드립니다!
-                </p>
-                <p>문의 사항이 있는 경우 언제든지 편하게 오픈 카톡으로 말씀해주시면, 담당자가 최대한 빠르게 해결해 드리겠습니다🙋‍♂️
-                </p>
-                <p>온라인으로 재탄생된 미팅을 쉽고 간편하게 이용해보세요. </p>
+                <span id="title_explain">
+                
+                <p>문의 사항이 있는 경우 언제든지 편하게 <a href="https://open.kakao.com/o/sfQGOIrc">오픈 카톡<img id="icon_kakaotalk" src="data:image/svg+xml;base64,PHN2ZyBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCAyNCAyNCIgaGVpZ2h0PSI1MTIiIHZpZXdCb3g9IjAgMCAyNCAyNCIgd2lkdGg9IjUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJtMTIgMWMtNi42MjcgMC0xMiA0LjIwOC0xMiA5LjM5OSAwIDMuMzU2IDIuMjQ2IDYuMzAxIDUuNjI1IDcuOTYzLTEuNjc4IDUuNzQ5LTIuNjY0IDYuMTIzIDQuMjQ0IDEuMjg3LjY5Mi4wOTcgMS40MDQuMTQ4IDIuMTMxLjE0OCA2LjYyNyAwIDEyLTQuMjA4IDEyLTkuMzk5IDAtNS4xOS01LjM3My05LjM5OC0xMi05LjM5OHoiIGZpbGw9IiMzZTI3MjMiLz48ZyBmaWxsPSIjZmZlYjNiIj48cGF0aCBkPSJtMTAuMzg0IDguMjdjLS4zMTctLjg5My0xLjUyOS0uODk0LTEuODQ1LS4wMDEtLjk4NCAzLjA1Mi0yLjMwMiA0LjkzNS0xLjQ5MiA1LjMwNiAxLjA3OC40ODkgMS4xMDEtLjYxMSAxLjM1OS0xLjFoMi4xMTFjLjI1Ny40ODcuMjgyIDEuNTg4IDEuMzU5IDEuMS44MTMtLjM3MS0uNDg5LTIuMTk1LTEuNDkyLTUuMzA1em0tMS42MTQgMi45ODcuNjkyLTEuOTUxLjY5MSAxLjk1MXoiLz48cGF0aCBkPSJtNS4zNjUgMTMuNjhjLTEuMTk4IDAtLjQ5LTEuNjU3LS42OTItNC43NDItLjQyOS0uMDc0LTEuNzYuMjk3LTEuNzYtLjY3MyAwLS4zNzEuMzA1LS42NzMuNjc5LS42NzMgMi41MTguMTggNC4yMjQtLjQ3IDQuMjI0LjY3MyAwIC45ODctMS4yNzUuNTktMS43Ni42NzMtLjIgMy4wNzUuNTA1IDQuNzQyLS42OTEgNC43NDJ6Ii8+PHBhdGggZD0ibTEzLjE1NCAxMy41NzljLTEuMTU5IDAtLjQ1NC0xLjU2NS0uNjYzLTUuMzAxIDAtLjkxIDEuNDEzLS45MDkgMS40MTMgMHY0LjA0Yy42NjkuMDg5IDIuMTM1LS4zMyAyLjEzNS42My0uMDAxIDEuMDA3LTEuNTc2LjUwMy0yLjg4NS42MzF6Ii8+PHBhdGggZD0ibTE5LjU1NiAxMy4zOC0xLjYyNC0yLjEzNy0uMjQuMjM5djEuNWMwIC4zOC0uMzEuNjg4LS42OTMuNjg4LTEuMjAzIDAtLjQ4Mi0xLjczMi0uNjkyLTUuMzkyIDAtLjM3OS4zMS0uNjg4LjY5Mi0uNjg4IDEuMDQ1IDAgLjU5NCAxLjQ3OC42OTIgMi4xNjYgMS45Ni0xLjg3MyAxLjkxMy0yLjA3MiAyLjMxNi0yLjA3Mi41NTYgMCAuODk3LjY5MS41MjcgMS4wNThsLTEuNTc4IDEuNTY3IDEuNzA0IDIuMjQzYy41NTYuNzI1LS41NTUgMS41NTYtMS4xMDQuODI4eiIvPjwvZz48L3N2Zz4=" alt="openkakaotalk" /></a>으로 말씀해주시면, 담당자가 최대한 빠르게 해결해 드리겠습니다🙋‍♂️</p>
                 <p>감사합니다! </p>
-                </span>
 
+                <p id="durate"> 모집기간 8/00 ~ 8/00 </p>
+                </span>
                 <a id="apply" href="https://bit.ly/2YwmKNe"> 신청하기 </a>
-                <span> Main </span>
             </div>
 
             <div className="controller">
                     <li> <a href="#main"> 신청 </a> </li>
-                    <li> <a href="#explain"> 서비스설명 </a> </li>
-                    <li> <a href="#qna"> QnA </a> </li>
+                    <li> <a href="#explain"> 설명 </a> </li>
+                    <li> <a href="#About"> QnA </a> </li>
             </div>
         </>
     )
