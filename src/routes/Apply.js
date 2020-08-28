@@ -1,11 +1,30 @@
 import React from "react"
 import "./Apply.css"
+
 function Apply() {
 
     return (
         <>
-        
-            <div className="Main" id="main">
+        {/*Masthead*/}
+        <header class="masthead" id="page-top"> 
+        <div class="container h-100">
+            <div class="row h-100 align-items-center justify-content-center text-center">
+                <div class="col-lg-10 align-self-end">
+                    <h1 class="title"> 티키타카 <br /> </h1> {/* text-uppercase라는 class를 주고 그 클래스는 다 속성을 줌으로써 클래스 명만으로 파악하도록 했다  */}
+                    <h2 class="sub_title">온라인 미팅 프로젝트 </h2>
+                    <hr class="divider my-4" />
+                </div>
+                <div class="col-lg-8 align-self-baseline">
+                    <p class="text-white-75 font-weight-light mb-5">Start Bootstrap can help you build better websites using the Bootstrap framework! Just download a theme and start customizing, no strings attached!
+                    <br/><br/>
+                    모집기간 : 9/00 ~ 9/00
+                    </p>
+                    <a class="btn btn-primary btn-xl js-scroll-trigger" href="#about"> 신청하기 </a>
+                </div>
+            </div>
+        </div>
+    </header>
+            {/* <div className="Main" id="main">
                 <p id="title"> 티키타카 </p>
                 <span id="title_explain">
                 
@@ -21,7 +40,7 @@ function Apply() {
                     <li> <a href="#main"> 신청 </a> </li>
                     <li> <a href="#explain"> 설명 </a> </li>
                     <li> <a href="#About"> QnA </a> </li>
-            </div>
+            </div> */}
         </>
     )
 }
