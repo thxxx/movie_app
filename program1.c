@@ -3,17 +3,7 @@
 #include <stdlib.h> // For: malloc(), realloc(), free(), exit(), execvp(), EXIT_SUCCESS, EXIT_FAILURE
 #include <time.h>
 #include <sys/time.h>
-
 #include <sys/timeb.h>
-
-#include <unistd.h>   // For: chdir(), fork(), exec(), pid_t, getcwd()
-#include <sys/wait.h> // For: waitpid()
-#include <fcntl.h>    // For: File creation modes
-#include <signal.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <sys/mman.h>
-#include <errno.h>
 
 void mergeSort(int data[], int p, int r);
 void merge(int data[], int p, int q, int r);
