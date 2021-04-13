@@ -16,9 +16,9 @@
 #include <errno.h>
 #include <time.h>
 
-#define NUM_OF_SUP 15 // 표준 유닉스 프로그램 갯수
+#define NUM_OF_SUP 14 // 표준 유닉스 프로그램 갯수
 
-char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir", "make"};
+char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir"};
 
 void DisplayPrompt(void);
 char *read_command_line(void);
@@ -31,6 +31,7 @@ int sep_background(char **args);
 int sup_background(char **args);
 
 int background_exec = 0;
+char PATH[500];
 
 int main(int argc, char **argv)
 {
@@ -88,6 +89,10 @@ char *read_command_line(void)
 	c = getchar();
 	while (c != EOF && c != '\n')
 	{
+		if (c == '&')
+		{
+			background_exec = 1;
+		}
 		command[position] = c;
 
 		// 버퍼를 필요한 경우에 따라 재할당해서 크기를 늘려준다.
@@ -126,7 +131,9 @@ char **split_command_line(char *command)
 }
 
 /*
+
 쉘에 들어온 명령어를 수행한다.
+
  */
 int shell_execute(char **args)
 {
@@ -226,7 +233,13 @@ int shell_execute(char **args)
 	if (strcmp(args[0], "cd") == 0)
 	{
 		int chdir_rtrn;
+
 		char path[500];
+
+		if (args[1] == NULL)
+		{
+			args[1] = "/";
+		}
 
 		if (strncmp(args[1], "/", 1) != 0)
 		{
@@ -244,6 +257,10 @@ int shell_execute(char **args)
 			path[s] = (char)0; // 없애버린다.
 			chdir_rtrn = chdir(path);
 		}
+		else if (strcmp(args[1], "-") == 0)
+		{
+			chdir_rtrn = chdir(PATH);
+		}
 		else if (strncmp(args[1], "/", strlen("/")) == 0)
 		{
 			chdir_rtrn = chdir(args[1]);
@@ -259,7 +276,10 @@ int shell_execute(char **args)
 
 		//error handling
 		if (chdir_rtrn < 0)
+		{
 			printf("Error while changing the directory, error is : %s \n", strerror(errno));
+			printf("%s", PATH);
+		}
 	}
 	// 앞에 해당하는게 있으면 리턴되어서 여기까지 안온다.
 
@@ -323,6 +343,7 @@ void shell_loop(void)
 
 		//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
 		status = shell_execute(arguments);
+		getcwd(PATH, sizeof(PATH));
 		//shell_execute 의 reuturn이 0 이면 종료.
 	}
 }
@@ -474,7 +495,9 @@ int shell_execute_program(char **args)
 
 int sep_background(char **args)
 {
+	printf("백그라운드 동작 \n");
 	pid_t pid;
+	pid_t pid_child;
 
 	int status;
 	pid = fork();
@@ -484,34 +507,57 @@ int sep_background(char **args)
 
 		int in, out;
 		char *argv[] = {args[0], (char *)0};
-		printf("%s", args[0]);
+		if (strcmp(args[1], "<") == 0)
+		{ // open input and output files
+			in = open(args[2], O_RDONLY);
+			//out = open("output.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
-		// open input and output files
-		in = open("input.txt", O_RDONLY);
-		//out = open("output.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-		/*
-		dup2(in, 0);
-		dup2(out, 1);
+			dup2(in, 0);
+			//dup2(out, 1);
 
-		close(in);
-		close(out);
-		*/
+			close(in);
+			//close(out);
 
-		sleep(3);
+			execvp(args[0], args);
+		}
+		else if (strcmp(args[1], ">") == 0)
+		{ // open input and output files
+			out = open(args[2], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
+			//dup2(in, 0);
+			dup2(out, 1);
+
+			//close(in);
+			close(out);
+
+			execvp(args[0], args);
+		}
+		sleep(10);
 		execv(args[0], argv);
 		exit(1);
 	}
 	else if (pid > 0) // parent process
 	{
-
-		pid = wait(&status); // wait child
-		int returnValue;
-		if (WIFEXITED(status))
+		printf("기다리지 않고 동작 \n");
+		while (waitpid(pid, &status, WNOHANG) == 0)
 		{
-			returnValue = WEXITSTATUS(status);
-		}
+			char *command_line;
+			char **arguments;
+			status = 1;
 
+			background_exec = 0;
+			DisplayPrompt();
+			command_line = read_command_line();
+			if (strcmp(command_line, "") == 0)
+			{
+				continue;
+			}
+			arguments = split_command_line(command_line);
+
+			//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
+			status = shell_execute(arguments);
+		}
+		printf("sdasdqdwww\n");
 		//remove("output.txt");
 		return 1;
 	}
@@ -519,13 +565,12 @@ int sep_background(char **args)
 	{ // Error in forking
 		perror("error");
 	}
-
 	return 1;
 }
 
 int sup_background(char **args)
 {
-	printf("vv\n");
+	printf("백그라운드 동작 \n");
 	{
 		pid_t pid;
 

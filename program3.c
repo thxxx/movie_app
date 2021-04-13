@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
     scanf("%d ", &numof_numbers);
 
-    printf(" 입력받은 숫자의 개수 : %d \n", numof_numbers);
+    // printf(" 입력받은 숫자의 개수 : %d \n", numof_numbers);
 
     if (argv[1] != NULL)
     {
