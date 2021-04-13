@@ -1,6 +1,12 @@
+
+/*******************************************************************
+ *   Made by : 2019147505 김호진
+ *   숫자들을 입력받아 병합정렬(Merge Sort)을 한 후 출력하는 프로그램
+ *******************************************************************/
+
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h> // For: malloc(), realloc(), free(), exit(), execvp(), EXIT_SUCCESS, EXIT_FAILURE
+#include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
@@ -11,27 +17,30 @@ void merge(int data[], int p, int q, int r);
 int main(int argc, char *argv[])
 
 {
-    int number;
+    int numOfNumbers;
 
-    scanf("%d", &number); // 첫 입력은 전체 갯수
+    scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
-    int num_list[number + 1];
+    int num_list[numOfNumbers + 1];
 
     int numbers;
 
-    for (int i = 0; i < number; i++)
+    for (int i = 0; i < numOfNumbers; i++)
     {
         scanf("%d", &numbers);
         num_list[i] = numbers;
     }
+    // ---------------------입력받기 완료------------------ 받은 입력은 num_list에 저장
 
-    mergeSort(num_list, 0, number - 1);
+    //병합정렬 시작
+    mergeSort(num_list, 0, numOfNumbers - 1);
 
     printf("%d", num_list[0]);
-    for (int i = 1; i < number; i++)
+    for (int i = 1; i < numOfNumbers; i++)
     {
         printf(" %d", num_list[i]);
     }
+    printf("\n");
     // sort end
 
     return 0;

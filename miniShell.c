@@ -1,9 +1,6 @@
 /*******************************************************************
- *           File:  miniShell.c
- *         Author:  Ashwitha Yadav T
- *   Date Started:  September 22, 2017
- *    Description:  A simple implementation of the Unix Shell in the
- *                      C Programming language.
+ *   Made by : 2019147505 김호진
+ *   Simple Unix Mini Shell 구현.
  *******************************************************************/
 
 #include <stdio.h>	  // For: printf(), fprintf(), getchar(), perror(), stderr
@@ -19,9 +16,9 @@
 #include <errno.h>
 #include <time.h>
 
-#define NUM_OF_SUP 11 // Number of builtin commands defined
+#define NUM_OF_SUP 15 // 표준 유닉스 프로그램 갯수
 
-char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi"};
+char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir", "make"};
 
 void DisplayPrompt(void);
 char *read_command_line(void);
@@ -37,13 +34,14 @@ int background_exec = 0;
 
 int main(int argc, char **argv)
 {
-	printf("minishell by Daniel start! \n");
-	// Main loop of the shell
+	printf("minishell by 김호진 start! \n");
+	// exit될때까지 계속반복하는 loop
 	shell_loop();
 
 	return 0;
 }
 
+/* [시간:분:초]아이디@경로> 출력 */
 void DisplayPrompt()
 {
 
@@ -78,19 +76,45 @@ void DisplayPrompt()
 	free(buf);
 }
 
-/*
- * Built-in command functions
- */
+/* 입력을 해석할 수 있게 키워드 단위(space로 구분)로 나눈다 */
+char *read_command_line(void)
+{
+	int position = 0;
+	int buf_size = 30;
+	char *command = (char *)malloc(sizeof(char) * 30);
+	char c;
+
+	// command line을 char by char로 읽어서 command로 반환한다.
+	c = getchar();
+	while (c != EOF && c != '\n')
+	{
+		command[position] = c;
+
+		// 버퍼를 필요한 경우에 따라 재할당해서 크기를 늘려준다.
+		if (position >= buf_size)
+		{
+			buf_size += 8;
+			command = realloc(command, sizeof(char) * buf_size);
+		}
+
+		position++;
+		c = getchar();
+	}
+	// 자꾸 마지막에 space가 없으면 키워드로 구분짓지 않는 문제가 발생해서 임의로 마지막에 space를 넣음.
+	command[position] = ' ';
+	return command;
+}
 
 char **split_command_line(char *command)
 {
 	int position = 0;
 	int no_of_tokens = 64;
 	char **tokens = malloc(sizeof(char *) * no_of_tokens);
-	char delim[2] = " ";
+	char delim[] = " \n";
 
-	// Split the command line into tokens with space as delimiter
+	// 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담는다.
 	char *token = strtok(command, delim);
+
 	while (token != NULL)
 	{
 		tokens[position] = token;
@@ -101,41 +125,8 @@ char **split_command_line(char *command)
 	return tokens;
 }
 
-char *read_command_line(void)
-{
-	int position = 0;
-	int buf_size = 30;
-	char *command = (char *)malloc(sizeof(char) * 30);
-	char c;
-
-	// Read the command line character by character
-	c = getchar();
-	while (c != EOF && c != '\n')
-	{
-		if (c == '&')
-		{
-			background_exec = 1;
-			position++;
-			c = getchar();
-			continue;
-		}
-		command[position] = c;
-
-		// Reallocate buffer as and when needed
-		if (position >= buf_size)
-		{
-			buf_size += 8;
-			command = realloc(command, sizeof(char) * buf_size);
-		}
-
-		position++;
-		c = getchar();
-	}
-	return command;
-}
-
 /*
-
+쉘에 들어온 명령어를 수행한다.
  */
 int shell_execute(char **args)
 {
@@ -147,25 +138,23 @@ int shell_execute(char **args)
 
 	if (strcmp(args[0], "exit") == 0)
 	{
-
+		// loop의 status가 0이되어 while문을 빠져나감
 		return 0;
 	}
 
-	// Copy the current Standard Input and Output file descriptors
-	// so they can be restored after executing the current command
+	// 현재의 Standard Input and Output file descriptors를 복사해둬서
+	// 커맨드 수행 후 다시 복구될 수 있게 한다.
 	int std_in, std_out, std_err;
 	std_in = dup(0);
 	std_out = dup(1);
 	std_err = dup(2);
 
-	// Check if redirection operators are present
 	int i = 1;
 	int args_length = (int)(sizeof(args) / sizeof(args[0]));
 
 	int chars = (int)(sizeof(args) / sizeof(*args[0]));
 
-	// . 실행 시작
-
+	// 프로그램의 실행 (.)
 	if (strncmp(*args, ".", 1) == 0)
 	{
 		if (background_exec == 0)
@@ -184,6 +173,7 @@ int shell_execute(char **args)
 		return 1;
 	}
 
+	// redirection 체크
 	while (args[i] != NULL)
 	{
 		if (strcmp(args[i], "<") == 0)
@@ -191,13 +181,13 @@ int shell_execute(char **args)
 			int inp = open(args[i + 1], O_RDONLY); // open after <
 			if (inp < 0)
 			{
-				perror("0 : os-kim");
+				perror("os-kim - open 실패");
 				return 1;
 			}
 
 			if (dup2(inp, 0) < 0)
 			{
-				perror("dup : os-kim");
+				perror("os-kim - write 실패");
 				return 1;
 			}
 			close(inp);
@@ -208,17 +198,16 @@ int shell_execute(char **args)
 
 		else if (strcmp(args[i], ">") == 0)
 		{ // Output redirection
-
-			int out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, 0755);
+			int out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 			if (out < 0)
 			{
-				perror("os-kim");
+				perror("os-kim - open 실패");
 				return 1;
 			}
 
 			if (dup2(out, 1) < 0)
 			{
-				perror("os-kim");
+				perror("os-kim - write 실패");
 				return 1;
 			}
 			close(out);
@@ -307,9 +296,9 @@ int shell_execute(char **args)
 }
 
 /*
- * Function:  shell_loop
- * ---------------------
- *  main loop of the Mini-Shell
+
+main loop of the Mini-Shell
+
  */
 void shell_loop(void)
 {
@@ -330,8 +319,9 @@ void shell_loop(void)
 		{
 			continue;
 		}
-		arguments = split_command_line(command_line); //arguments 는 그냥 키워드들 배열
+		arguments = split_command_line(command_line);
 
+		//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
 		status = shell_execute(arguments);
 		//shell_execute 의 reuturn이 0 이면 종료.
 	}
@@ -339,10 +329,9 @@ void shell_loop(void)
 
 /*
 
-스탠다드 유닉스 프로그램 실행 함수
+스탠다드 유닉스 프로그램을 실행하는 함수
 
 */
-
 int shell_execute_sup(char **args)
 {
 	{
@@ -357,22 +346,25 @@ int shell_execute_sup(char **args)
 		{ //child process
 			int in, out;
 
-			// argv에 args를 넣어줘야한다.
-			char *argv[] = {args[0], (char *)0};
+			char **argv = malloc(sizeof(char *) * 50);
+			int i = 0;
+			while (args[i] != NULL)
+			{
+				argv[i] = args[i];
+				i++;
+			}
+			argv[i] = (char *)0; // 마지막엔 null 포인터를 넣어준다.
 
 			// open input and output files
-			in = open("input.txt", O_RDONLY);
 			out = open(temp_out, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-			// replace standard input with input file
-			dup2(in, 0);
+
 			// replace standard output with output file
 			dup2(out, 1);
 
 			// close unused file descriptors
-			close(in);
 			close(out);
 
-			execvp(argv[0], args); // ls -l  -> argv[0] = "ls"
+			execvp(argv[0], argv);
 
 			exit(1); // 위에서 exec이 실행되면 이건 실행이 안돼야하는게 맞다. 따라서 정상이면 0, 비정상이면 1
 		}
@@ -414,10 +406,14 @@ int shell_execute_sup(char **args)
 	}
 }
 
+/*
+
+.가 입력되었을 때 해당 파일을 실행하도록 해준다
+
+*/
 int shell_execute_program(char **args)
 {
 	pid_t pid;
-	printf(" . 로 파일 실행 \n");
 
 	int status;
 	pid = fork();
@@ -429,7 +425,6 @@ int shell_execute_program(char **args)
 		char *argv[] = {args[0], (char *)0};
 		if (strcmp(args[1], "<") == 0)
 		{ // open input and output files
-			printf("args[2] : %s \n", args[2]);
 			in = open(args[2], O_RDONLY);
 			//out = open("output.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
@@ -443,8 +438,6 @@ int shell_execute_program(char **args)
 		}
 		else if (strcmp(args[1], ">") == 0)
 		{ // open input and output files
-			printf("args[2] : %s \n", args[2]);
-			//in = open(args[2], O_RDONLY);
 			out = open(args[2], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
 			//dup2(in, 0);
@@ -482,7 +475,6 @@ int shell_execute_program(char **args)
 int sep_background(char **args)
 {
 	pid_t pid;
-	printf(" . 로 파일 실행 \n");
 
 	int status;
 	pid = fork();

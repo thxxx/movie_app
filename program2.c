@@ -1,77 +1,30 @@
+
+/*******************************************************************
+ *   Made by : 2019147505 김호진
+ *   숫자들을 입력받아 멀티프로세싱방법으로 병합정렬(Merge Sort)을 한 후 출력하는 프로그램
+ *******************************************************************/
+
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h> // For: malloc(), realloc(), free(), exit(), execvp(), EXIT_SUCCESS, EXIT_FAILURE
+#include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
-
 #include <sys/timeb.h>
-
-#include <unistd.h>   // For: chdir(), fork(), exec(), pid_t, getcwd()
-#include <sys/wait.h> // For: waitpid()
-#include <fcntl.h>    // For: File creation modes
-#include <signal.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
-#include <pwd.h>
 #include <sys/mman.h>
 #include <errno.h>
 
-void makeTwoProcess(char **arguments, int maxlen, int end);
-int fm2(char **args, int maxlen, int number);
+int workProcess(char **args, int maxlen, int number);
 void merge(char **firstData, char **secondData, char **arguments);
 void dividehalf(char **arguments, int end, int currentdepth);
-int maxlen = 1;
-int nowChilderen = 1;
+char *read_command_line(void);
+char **split_command_line(char *command);
+
+int numOfProcess = 1;
 int mynum = 0;
-
 int depth = 0;
-
-char **split_command_line(char *command)
-{
-    int position = 0;
-    int no_of_tokens = 64;
-    char **tokens = malloc(sizeof(char *) * no_of_tokens);
-    char delim[3] = " \n";
-
-    // Split the command line into tokens with space as delimiter
-    char *token = strtok(command, delim);
-
-    //tokens[0] = NULL;
-
-    while (token != NULL)
-    {
-        tokens[position] = token;
-        position++;
-        token = strtok(NULL, delim);
-    }
-    tokens[position] = NULL;
-    return tokens;
-}
-
-char *read_command_line(void)
-{
-    int position = 0;
-    int buf_size = 30;
-    char *command = (char *)malloc(sizeof(char) * 30);
-    char c;
-
-    // Read the command line character by character
-    c = getchar();
-    while (c != EOF && c != '\n')
-    {
-        command[position] = c;
-
-        // Reallocate buffer as and when needed
-        if (position >= buf_size)
-        {
-            buf_size += 8;
-            command = realloc(command, sizeof(char) * buf_size);
-        }
-
-        position++;
-        c = getchar();
-    }
-    return command;
-}
 
 int main(int argc, char *argv[])
 
@@ -83,43 +36,44 @@ int main(int argc, char *argv[])
 
     // get input start
 
-    int number;
+    int numOfNumbers;
     int first;
     char *command_line;
     char **arguments;
 
-    scanf("%d ", &number);
+    scanf("%d ", &numOfNumbers);
 
-    printf(" 입력받은 숫자의 개수 : %d \n", number);
+    printf(" 입력받은 숫자의 개수 : %d \n", numOfNumbers);
 
     if (argv[1] != NULL)
     {
-        maxlen = atoi(argv[1]);
+        numOfProcess = atoi(argv[1]);
     }
 
     command_line = read_command_line();
     arguments = split_command_line(command_line); //arguments 는 그냥 키워드들 배열
 
-    for (int i = 0; i < number; i++)
+    for (int i = 0; i < numOfNumbers; i++)
     {
         printf("%s ", arguments[i]);
     }
+    // ---------------------입력받기 완료------------------
 
     int i = 1;
-    while (i < maxlen)
+    while (i < numOfProcess)
     {
         i *= 2;
         depth += 1;
     }
     //do stuff
-    printf(" 멀티프로세스 병합정렬 시작! \n");
+    printf(" 멀티프로세스 병합정렬 시작 \n");
 
     // 정렬 프로세스. 가장 중요
     /*****************************/
     // num_list 는 입력받은 숫자들, maxlen은 리디렉션으로 들어온 생성하는 프로세스 수 , nnumber은 숫자 개수
 
     // 전체 입력 데이터를 total_process_num 만큼 적절히 나눈다.
-    dividehalf(arguments, number, 0);
+    dividehalf(arguments, numOfNumbers, 0);
 
     /*****************************/
 
@@ -128,11 +82,12 @@ int main(int argc, char *argv[])
     dup2(std_err, 2);
 
     printf("\n정렬 후\n");
-    for (int i = 0; i < number; i++)
+    for (int i = 0; i < numOfNumbers; i++)
     {
         printf("%s ", arguments[i]);
     }
-    // sort end
+
+    // 이렇게 메모리 해제를 시켜줄 수 있는것인지 잘 모르겠습니다.
     free(command_line);
     free(arguments);
 
@@ -157,74 +112,27 @@ void dividehalf(char **arguments, int end, int currentdepth)
     }
 
     if (depth > currentdepth)
-    {
+    { // 아직 수행할 프로세스의 수보다 나누어진 영역이 더 적어 더 잘게 나누어서 실행가능하다.
         dividehalf(left, middle, currentdepth);
         dividehalf(right, end - middle, currentdepth);
         merge(left, right, arguments);
     }
-    else if (mynum < maxlen - 1)
+    else if (mynum < numOfProcess - 1)
     {
-        printf("left: ");
-
-        for (int i = 0; i < middle; i++)
-        {
-            printf("%s ", left[i]);
-        }
-        printf("\n");
-
-        printf("right: ");
-        for (int i = 0; i < end - middle; i++)
-        {
-            printf("%s ", right[i]);
-        }
-        printf("\n");
-
-        fm2(left, maxlen, middle);
-        fm2(right, maxlen, end - middle);
-        merge(left, right, arguments);
-
-        printf("after merg \n");
-
-        printf("nums : %d left: ", middle);
-
-        for (int i = 0; i < middle; i++)
-        {
-            printf("%s ", left[i]);
-        }
-        printf("\n");
-
-        printf("nums : %d right: ", end - middle);
-        for (int i = 0; i < end - middle; i++)
-        {
-            printf("%s ", right[i]);
-        }
-        printf("\n");
+        workProcess(left, numOfProcess, middle);
+        workProcess(right, numOfProcess, end - middle);
+        merge(left, right, arguments); // left와 right로 나누어져 병합정렬된 후 다시 합쳐서 arguments를 수정한다.
     }
     else
     {
-
-        printf("args: ");
-        for (int i = 0; i < end; i++)
-        {
-            printf("%s ", arguments[i]);
-        }
-        printf("\n");
-        fm2(arguments, maxlen, end);
-
-        printf("after merg \n");
-
-        for (int i = 0; i < end; i++)
-        {
-            printf("%s ", arguments[i]);
-        }
-        printf("\n");
+        workProcess(arguments, numOfProcess, end);
     }
 
     free(left);
     free(right);
 }
 
-int fm2(char **args, int maxlen, int number)
+int workProcess(char **args, int maxlen, int number)
 {
     pid_t pid, pidr;
     mynum += 1;
@@ -238,6 +146,7 @@ int fm2(char **args, int maxlen, int number)
     { //child process
         printf("i am process number %d \n", mynum);
 
+        // 자식프로세스의 프로그램으로 넘겨줄 값들을 임시파일에 작성해서 넘겨준다.
         out = open("tempout.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
         dup2(out, 1);
         printf("%d\n", number);
@@ -246,24 +155,20 @@ int fm2(char **args, int maxlen, int number)
             printf("%s ", args[k]);
         }
         printf("\n");
-
         close(out);
-        char *argv[] = {"program1", (char *)0}; // merge sort로 넘겨줄 인자들. program1의 redirection입력으로 안넘어간다.
-        // open input and output files
+
+        char *argv[] = {"program1", (char *)0};
+        // 넘겨줄 파일과 결과를 쓸 파일을 open한다.
         in = open("tempout.txt", O_RDONLY);
         out = open("ooout.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-        // replace standard input with input file
+
         dup2(in, 0);
-        // replace standard output with output file
         dup2(out, 1);
-        // close unused file descriptors
+
         close(in);
         close(out);
-        //execute program 1
 
-        // 여기 program1의 인자로 argv가 전달이 안되고 있다.
-        // 여기서 args는 내가 원하는대로 자른 후 병합정렬에 넘겨주려는 값임.
-        // 근데 in으로 받은게 무조건 들어간다?
+        //program1을 실행해 병합정렬한다.
         execvp("./program1", args);
         exit(0);
     }
@@ -297,7 +202,7 @@ int fm2(char **args, int maxlen, int number)
             co += count;
         }
 
-        outs = split_command_line(command); //arguments 는 그냥 키워드들 배열
+        outs = split_command_line(command);
 
         for (int i = 0; i < number; i++)
         {
@@ -306,9 +211,9 @@ int fm2(char **args, int maxlen, int number)
 
         fclose(fp); // 파일 포인터 닫기
 
-        // input, output file 삭제해야함.
-        //remove("tempout.txt");
-        //remove("ooout.txt");
+        // 임시로 작성한 input, output file 삭제해야함.
+        remove("tempout.txt");
+        remove("ooout.txt");
 
         return 1;
     }
@@ -320,65 +225,9 @@ int fm2(char **args, int maxlen, int number)
     return 1;
 }
 
-/*
-
-두개의 프로세스로 나누어 실행하게 한다.
-
-*/
-void makeTwoProcess(char **arguments, int maxlen, int end)
-{
-    mynum += 1;
-
-    int middle = (int)(end / 2);
-
-    char **left = malloc(sizeof(char *) * middle);
-    char **right = malloc(sizeof(char *) * (end - middle));
-
-    for (int i = 0; i < middle; i++)
-    {
-        left[i] = arguments[i];
-    }
-    for (int i = 0; i < end - middle; i++)
-    {
-        right[i] = arguments[middle + i];
-    }
-
-    // 받은 숫자들을 두그룹으로 나눴다. left, right. right가ㅏ left보다 하나 크거나 같음.
-
-    // 프로세스를 두개 만들어서 각각 병합 정렬을 시도한다.
-    // 근데 두개로 나눠서 해버리면 병합정렬된 각각을 또 합쳐야하는거 아닌가?
-
-    printf("\n left: ");
-    for (int i = 0; i < middle; i++)
-    {
-        printf("%s ", left[i]);
-    }
-    printf("\n");
-
-    printf("\n right: ");
-    for (int i = 0; i < end - middle; i++)
-    {
-        printf("%s ", right[i]);
-    }
-    printf("\n");
-
-    //
-    //
-
-    fm2(left, maxlen, middle);
-    fm2(right, maxlen, end - middle);
-
-    merge(left, right, arguments);
-
-    //
-    //
-    //
-    free(left);
-    free(right);
-}
-
 void merge(char **firstData, char **secondData, char **arguments)
 {
+    // firstData와 secondData를 합쳐서 arguments로 반환.
     int i = 0;
     int j = 0;
     int count = 0;
@@ -415,4 +264,50 @@ void merge(char **firstData, char **secondData, char **arguments)
             count++;
         }
     }
+}
+
+char *read_command_line(void)
+{
+    int position = 0;
+    int buf_size = 30;
+    char *command = (char *)malloc(sizeof(char) * 30);
+    char c;
+
+    // command line을 char by char로 읽어서 command로 반환한다.
+    c = getchar();
+    while (c != EOF && c != '\n')
+    {
+        command[position] = c;
+
+        // 버퍼를 필요한 경우에 따라 재할당해서 크기를 늘려준다.
+        if (position >= buf_size)
+        {
+            buf_size += 8;
+            command = realloc(command, sizeof(char) * buf_size);
+        }
+
+        position++;
+        c = getchar();
+    }
+    return command;
+}
+
+char **split_command_line(char *command)
+{
+    int position = 0;
+    int no_of_tokens = 64;
+    char **tokens = malloc(sizeof(char *) * no_of_tokens);
+    char delim[3] = " \n";
+
+    // 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담는다.
+    char *token = strtok(command, delim);
+
+    while (token != NULL)
+    {
+        tokens[position] = token;
+        position++;
+        token = strtok(NULL, delim);
+    }
+    tokens[position] = NULL;
+    return tokens;
 }
