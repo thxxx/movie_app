@@ -16,10 +16,11 @@
 #include <sys/mman.h>
 #include <errno.h>
 
-void workProcess(int *data, int end);
+int workProcess(char **args, int maxlen, int number);
+void mulProcesses(int *data, int end);
 int *split_command_int(char *command);
 void merge(int data[], int p, int q, int r);
-void merge_after_merge(int nums[], int nop, int accelerator);
+void merge_sections_of_array(int arr[], int number, int aggregation);
 
 #define READ 0
 #define WRITE 1
@@ -75,21 +76,12 @@ int main(int argc, char *argv[])
     for (int j = 0; j < numOfProcess; j++)
     {
         if (j == numOfProcess - 1)
+            numPerProcess = numPerProcess + remaind;
+        for (int i = 0; i < numPerProcess; i++)
         {
-            for (int i = 0; i < (numPerProcess + remaind); i++)
-            {
-                data[i] = num_list[numPerProcess * j + i];
-            }
-            workProcess(data, numPerProcess + remaind);
+            data[i] = num_list[nppCopy * j + i];
         }
-        else
-        {
-            for (int i = 0; i < numPerProcess; i++)
-            {
-                data[i] = num_list[nppCopy * j + i];
-            }
-            workProcess(data, numPerProcess);
-        }
+        mulProcesses(data, numPerProcess);
     }
     printf("\n");
     // 마무리 작업들
@@ -127,9 +119,7 @@ int main(int argc, char *argv[])
     int i = 0;
     fclose(fp); // 파일 포인터 닫기
 
-    remove("temp_out_os.txt");
-
-    merge_after_merge(outs, numOfProcess, 1);
+    merge_sections_of_array(outs, numOfProcess, 1);
 
     for (int i = 0; i < numOfNumbers; i++)
     {
@@ -145,7 +135,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void workProcess(int *data, int end)
+void mulProcesses(int *data, int end)
 {
     int numOfProcess = 1;
 
@@ -211,42 +201,42 @@ int *split_command_int(char *command)
 void merge(int data[], int left, int middle, int right)
 {
     int le = left, mi = middle + 1, count = left;
-    int temp[right]; // 새 배열
+    int tmp[right]; // 새 배열
 
     while (le <= middle && mi <= right)
     {
         if (data[le] <= data[mi])
-            temp[count++] = data[le++];
+            tmp[count++] = data[le++];
         else
-            temp[count++] = data[mi++];
+            tmp[count++] = data[mi++];
     }
 
     while (le <= middle)
-        temp[count++] = data[le++];
+        tmp[count++] = data[le++];
 
     while (mi <= right)
-        temp[count++] = data[mi++];
+        tmp[count++] = data[mi++];
 
     for (int i = left; i <= right; i++)
-        data[i] = temp[i];
+        data[i] = tmp[i];
 }
 
 /* 각각 mergesort된 부분들을 합친다. */
-void merge_after_merge(int nums[], int nop, int accelerator)
+void merge_sections_of_array(int arr[], int number, int aggregation)
 {
-    for (int i = 0; i < nop; i += 2)
+    for (int i = 0; i < number; i += 2)
     {
-        int left = i * (numPerProcess * accelerator);
-        int right = ((i + 2) * numPerProcess * accelerator) - 1;
-        int middle = left + (numPerProcess * accelerator) - 1;
+        int left = i * (numPerProcess * aggregation);
+        int right = ((i + 2) * numPerProcess * aggregation) - 1;
+        int middle = left + (numPerProcess * aggregation) - 1;
         if (right >= numOfNumbers)
         {
             right = numOfNumbers - 1;
         }
-        merge(nums, left, middle, right);
+        merge(arr, left, middle, right);
     }
-    if (nop / 2 >= 1)
+    if (number / 2 >= 1)
     {
-        merge_after_merge(nums, nop / 2, accelerator * 2);
+        merge_sections_of_array(arr, number / 2, aggregation * 2);
     }
 }

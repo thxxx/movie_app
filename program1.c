@@ -1,6 +1,6 @@
 
 /*******************************************************************
- *   Made by : 2019147505 김호진
+ *       Made by : 2019147505 김호진
  *   숫자들을 입력받아 병합정렬(Merge Sort)을 한 후 출력하는 프로그램
  *******************************************************************/
 
@@ -11,10 +11,10 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 
-void mergeSort(int data[], int p, int r);
-void merge(int data[], int p, int q, int r);
+void mergeSort(int data[], int left, int right)
+void merge(int data[], int left, int middle, int right)
 
-int main(int argc, char *argv[])
+    int main(int argc, char *argv[])
 
 {
     int numOfNumbers;
@@ -46,32 +46,37 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void mergeSort(int data[], int p, int r)
+void mergeSort(int data[], int left, int right)
 {
-    int q;
-    if (p < r)
+    int middle;
+    if (left < right)
     {
-        q = (p + r) / 2;
-        mergeSort(data, p, q);
-        mergeSort(data, q + 1, r);
-        merge(data, p, q, r);
+        middle = (left + right) / 2;
+        mergeSort(data, left, middle);
+        mergeSort(data, middle + 1, right);
+        merge(data, left, middle, right);
     }
 }
-void merge(int data[], int p, int q, int r)
+
+void merge(int data[], int left, int middle, int right)
 {
-    int i = p, j = q + 1, k = p;
-    int tmp[r]; // 새 배열
-    while (i <= q && j <= r)
+    int le = left, mi = middle + 1, count = left;
+    int temp[right]; // 새 배열
+
+    while (le <= middle && mi <= right)
     {
-        if (data[i] <= data[j])
-            tmp[k++] = data[i++];
+        if (data[le] <= data[mi])
+            temp[count++] = data[le++];
         else
-            tmp[k++] = data[j++];
+            temp[count++] = data[mi++];
     }
-    while (i <= q)
-        tmp[k++] = data[i++];
-    while (j <= r)
-        tmp[k++] = data[j++];
-    for (int a = p; a <= r; a++)
-        data[a] = tmp[a];
+
+    while (le <= middle)
+        temp[count++] = data[le++];
+
+    while (mi <= right)
+        temp[count++] = data[mi++];
+
+    for (int i = left; i <= right; i++)
+        data[i] = temp[i];
 }

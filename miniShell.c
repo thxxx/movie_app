@@ -20,11 +20,11 @@
 
 char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir"};
 
+void shell_loop(void);
 void DisplayPrompt(void);
 char *read_command_line(void);
 char **split_command_line(char *command);
 int shell_execute(char **args);
-void shell_loop(void);
 int shell_execute_sup(char **args);
 int shell_execute_program(char **args);
 int sep_background(char **args);
@@ -651,3 +651,6 @@ int sup_background(char **args)
 
 	return 1;
 }
+
+
+

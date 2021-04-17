@@ -21,16 +21,19 @@
 
 void mergeSort(int data[], int p, int r);
 void *thread_merge_sort(void *arg);
-void merge_sections_of_array(int gloNumList[], int number, int aggregation);
+void merge_sections_of_array(int arr[], int number, int aggregation);
 void merge(int data[], int p, int q, int r);
+char **split_command_line(char *command);
+char *read_command_line(void);
 
-int numof_thread = 1;
-int gloNumList[100];
+int depth = 0;
+int numOfThread = 1;
+int nowChilderen = 1;
+int LENGTH;
+int NUMTO_THREAD;
+int OFFSET;
+int arr[100];
 int mynum = 0;
-
-int numOfNumbers = 0;
-int numPerThread = 0;
-int remaind;
 
 int main(int argc, char *argv[])
 
@@ -41,6 +44,8 @@ int main(int argc, char *argv[])
     std_err = dup(2);
 
     // get input start
+
+    int numOfNumbers;
 
     scanf("%d", &numOfNumbers);
     printf(" 입력받은 숫자의 개수 : %d \n", numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
@@ -57,45 +62,39 @@ int main(int argc, char *argv[])
 
     if (argv[1] != NULL)
     {
-        numof_thread = atoi(argv[1]);
-    }
-
-    for (int i = 0; i < numOfNumbers; i++)
-    {
-        gloNumList[i] = num_list[i];
-        printf("%d ", num_list[i]);
+        numOfThread = atoi(argv[1]);
     }
 
     // ---------------------입력받기 완료------------------
 
     // 글로벌 변수로 만들어 줌으로써 쓰레드간에 공유가 되도록 한다.
-
-    numPerThread = numOfNumbers / numof_thread;
-    remaind = numOfNumbers % numof_thread;
+    LENGTH = numOfNumbers;
+    NUMTO_THREAD = LENGTH / numOfThread;
+    OFFSET = LENGTH % numOfThread;
 
     struct timeval stop, start_time;
     gettimeofday(&start_time, NULL);
 
     // 쓰레드를 받은 입력의 개수만큼 생성한다.
-    pthread_t threads[numof_thread];
+    pthread_t threads[numOfThread];
 
-    for (int i = 0; i < numof_thread; i++)
+    for (long i = 0; i < numOfThread; i++)
     {
         // 각각의 쓰레드에 thread_merge_sort함수를 실행하도록 한다. 공유하는 데이터는 인자로 넘겨줄 필요가 없다. 함수에게는 i를 전달한다.
-        int res = pthread_create(&threads[i], NULL, thread_merge_sort, (void *)(long)i);
-        if (res)
+        int rc = pthread_create(&threads[i], NULL, thread_merge_sort, (void *)i);
+        if (rc)
         {
-            printf("ERROR; return code from pthread_create() is %d\n", res);
+            printf("ERROR; return code from pthread_create() is %d\n", rc);
             exit(-1);
         }
     }
 
-    for (int i = 0; i < numof_thread; i++)
+    for (long i = 0; i < numOfThread; i++)
     {
         //쓰레드의 종료를 기다린다.
         pthread_join(threads[i], NULL);
     }
-    merge_sections_of_array(gloNumList, numof_thread, 1);
+    merge_sections_of_array(num_list, numOfThread, 1);
 
     // 마무리 작업들
     gettimeofday(&stop, NULL);
@@ -106,9 +105,9 @@ int main(int argc, char *argv[])
     dup2(std_err, 2);
 
     printf("\n정렬 후\n");
-    for (int i = numOfNumbers - 1; i >= 0; i--)
+    for (int i = 0; i < LENGTH; i++)
     {
-        printf("%d ", gloNumList[i]);
+        printf("%d ", num_list[i]);
     }
     printf("\n 걸린 시간: %dms", ms);
     // sort end
@@ -120,21 +119,21 @@ void *thread_merge_sort(void *arg)
 {
     mynum += 1;
     int thread_id = (long)arg;
-    int left = thread_id * (numPerThread);
-    int right = (thread_id + 1) * (numPerThread)-1;
+    int left = thread_id * (NUMTO_THREAD);
+    int right = (thread_id + 1) * (NUMTO_THREAD)-1;
 
     printf("\nI am working in %d thread\n", mynum);
 
-    if (thread_id == numof_thread - 1)
+    if (thread_id == numOfThread - 1)
     {
-        right += remaind;
+        right += OFFSET;
     }
     int middle = left + (right - left) / 2;
     if (left < right)
     {
-        mergeSort(gloNumList, left, right);
-        mergeSort(gloNumList, left + 1, right);
-        merge(gloNumList, left, middle, right);
+        mergeSort(arr, left, right);
+        mergeSort(arr, left + 1, right);
+        merge(arr, left, middle, right);
     }
     return NULL;
 }
@@ -150,28 +149,23 @@ void mergeSort(int data[], int p, int r)
         merge(data, p, q, r);
     }
 }
-
-void merge(int data[], int left, int middle, int right)
+void merge(int data[], int p, int q, int r)
 {
-    int le = left, mi = middle + 1, count = left;
-    int tmp[right]; // 새 배열
-
-    while (le <= middle && mi <= right)
+    int i = p, j = q + 1, k = p;
+    int tmp[r]; // 새 배열
+    while (i <= q && j <= r)
     {
-        if (data[le] <= data[mi])
-            tmp[count++] = data[le++];
+        if (data[i] <= data[j])
+            tmp[k++] = data[i++];
         else
-            tmp[count++] = data[mi++];
+            tmp[k++] = data[j++];
     }
-
-    while (le <= middle)
-        tmp[count++] = data[le++];
-
-    while (mi <= right)
-        tmp[count++] = data[mi++];
-
-    for (int i = left; i <= right; i++)
-        data[i] = tmp[i];
+    while (i <= q)
+        tmp[k++] = data[i++];
+    while (j <= r)
+        tmp[k++] = data[j++];
+    for (int a = p; a <= r; a++)
+        data[a] = tmp[a];
 }
 
 /* 각각 mergesort된 부분들을 합친다. */
@@ -179,12 +173,12 @@ void merge_sections_of_array(int arr[], int number, int aggregation)
 {
     for (int i = 0; i < number; i = i + 2)
     {
-        int left = i * (numPerThread * aggregation);
-        int right = ((i + 2) * numPerThread * aggregation) - 1;
-        int middle = left + (numPerThread * aggregation) - 1;
-        if (right >= numOfNumbers)
+        int left = i * (NUMTO_THREAD * aggregation);
+        int right = ((i + 2) * NUMTO_THREAD * aggregation) - 1;
+        int middle = left + (NUMTO_THREAD * aggregation) - 1;
+        if (right >= LENGTH)
         {
-            right = numOfNumbers - 1;
+            right = LENGTH - 1;
         }
         merge(arr, left, middle, right);
     }
@@ -192,4 +186,53 @@ void merge_sections_of_array(int arr[], int number, int aggregation)
     {
         merge_sections_of_array(arr, number / 2, aggregation * 2);
     }
+}
+
+/* 입력나눠서 저장하는 func들 */
+char **split_command_line(char *command)
+{
+    int position = 0;
+    int no_of_tokens = 64;
+    char **tokens = malloc(sizeof(char *) * no_of_tokens);
+    char delim[3] = " \n";
+
+    // Split the command line into tokens with space as delimiter
+    char *token = strtok(command, delim);
+
+    //tokens[0] = NULL;
+
+    while (token != NULL)
+    {
+        tokens[position] = token;
+        position++;
+        token = strtok(NULL, delim);
+    }
+    tokens[position] = NULL;
+    return tokens;
+}
+
+char *read_command_line(void)
+{
+    int position = 0;
+    int buf_size = 30;
+    char *command = (char *)malloc(sizeof(char) * 30);
+    char c;
+
+    // Read the command line character by character
+    c = getchar();
+    while (c != EOF && c != '\n')
+    {
+        command[position] = c;
+
+        // Reallocate buffer as and when needed
+        if (position >= buf_size)
+        {
+            buf_size += 8;
+            command = realloc(command, sizeof(char) * buf_size);
+        }
+
+        position++;
+        c = getchar();
+    }
+    return command;
 }
