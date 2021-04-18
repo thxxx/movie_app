@@ -20,14 +20,14 @@
 
 char *standardUnixProgram[] = {"pwd", "ls", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir", "ps"};
 
-void shell_loop(void);					  // exit명령 전까지 miniShell을 반복한다.
-void PathDisplay(void);					  // [시간:분:초]아이디@경로> 출력
-char *read_command_line(void);			  // 들어온 입력을 전부 받아 단순 문자열로 저장한다.
-char **split_command_line(char *command); // 받은 전체 입력을 space를 기준으로 문자열로 나눠준다.
-int shell_execute(char **args);			  // 입력된 명령어에 해당하는 동작을 수행한다.
-int shell_execute_sup(char **args);		  // 표준 유닉스 프로그램을 실행한다.
-int shell_execute_program(char **args);	  // .가 입력되었을 때 해당 파일을 실행하도록 해준다
-int sep_background(char **args);		  // 프로그램을 백그라운드에서 실행한다. ps로 확인이 가능하다.
+void shell_loop(void);					// exit명령 전까지 miniShell을 반복한다.
+void PathDisplay(void);					// [시간:분:초]아이디@경로> 출력
+char *get_command(void);				// 들어온 입력을 전부 받아 단순 문자열로 저장한다.
+char **gather_words(char *command);		// 받은 전체 입력을 space를 기준으로 문자열로 나눠준다.
+int shell_execute(char **args);			// 입력된 명령어에 해당하는 동작을 수행한다.
+int shell_execute_sup(char **args);		// 표준 유닉스 프로그램을 실행한다.
+int shell_execute_program(char **args); // .가 입력되었을 때 해당 파일을 실행하도록 해준다
+int sep_background(char **args);		// 프로그램을 백그라운드에서 실행한다. ps로 확인이 가능하다.
 
 // 백그라운드 동작 명령이 들어왔는지 체크한다.
 int background_exec = 0;
@@ -66,10 +66,10 @@ void shell_loop(void)
 		// background 명령어인지 알려주는 변수를 초기화한다.
 		background_exec = 0;
 		PathDisplay();
-		command_line = read_command_line();
+		command_line = get_command();
 		if (strcmp(command_line, "") == 0)
 			continue;
-		arguments = split_command_line(command_line);
+		arguments = gather_words(command_line);
 		//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
 		status = shell_execute(arguments);
 		//shell_execute 의 reuturn이 0 이면 종료.
@@ -112,7 +112,7 @@ void PathDisplay()
 }
 
 /* 입력을 해석할 수 있게 키워드 단위(space로 구분)로 나눈다 */
-char *read_command_line(void)
+char *get_command(void)
 {
 	int position = 0;
 	int buffer_size = 30;
@@ -146,7 +146,7 @@ char *read_command_line(void)
 }
 
 // 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담는다.
-char **split_command_line(char *command)
+char **gather_words(char *command)
 {
 	int position = 0;
 	char **tokens = malloc(sizeof(char *) * 60);

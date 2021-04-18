@@ -20,8 +20,8 @@
 #include <pthread.h>
 
 void merge_sort(int data[], int p, int r);
-void *merge_sort_at_thread(void *tid);
-void merge_after_merge(int gloNumList[], int number, int aggregation);
+void *merge_sort_at_thread(void *turn);
+void merge_after_merge(int nums[], int nop, int step);
 void merge(int data[], int p, int q, int r);
 
 int numOfThread = 1;
@@ -29,7 +29,7 @@ int gloNumList[100];
 
 int numOfNumbers = 0;
 int numPerThread = 0;
-int remaind;
+int remaind = 0;
 
 int main(int argc, char *argv[])
 
@@ -82,16 +82,17 @@ int main(int argc, char *argv[])
         int res = pthread_create(&threads[i], NULL, merge_sort_at_thread, (void *)(long)i);
         if (res)
         {
-            printf("ERROR; return code from pthread_create() is %d\n", res);
+            printf("os-kim - error : %d\n", res);
             exit(-1);
         }
     }
 
-    for (int i = 0; i < numOfThread; i++)
+    for (int i = 0; i < numOfThread + 1; i++)
     {
         //쓰레드의 종료를 기다린다.
         pthread_join(threads[i], NULL);
     }
+
     merge_after_merge(gloNumList, numOfThread, 1);
 
     // 마무리 작업들
@@ -113,22 +114,20 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void *merge_sort_at_thread(void *tid)
+void *merge_sort_at_thread(void *turn)
 {
-    int threadId = (long)tid;
-    int left = threadId * (numPerThread);
-    int right = (threadId + 1) * (numPerThread)-1;
+    int threadId = (long)turn;
+    int left = threadId * numPerThread;
+    int middle;
+    int right = (threadId + 1) * numPerThread - 1;
 
     if (threadId == numOfThread - 1)
-    {
-        right += remaind;
-    }
-    int middle;
+        right = right + remaind;
     if (left < right)
     {
-        middle = (right + left) / 2;
-        merge_sort(gloNumList, left, right);
-        merge_sort(gloNumList, left + 1, right);
+        middle = (left + right) / 2;
+        merge_sort(gloNumList, left, middle);
+        merge_sort(gloNumList, middle + 1, right);
         merge(gloNumList, left, middle, right);
     }
     return NULL;
@@ -170,21 +169,18 @@ void merge(int data[], int left, int middle, int right)
 }
 
 /* 각각 mergesort된 부분들을 합친다. */
-void merge_after_merge(int arr[], int number, int aggregation)
+void merge_after_merge(int nums[], int not, int step)
 {
-    for (int i = 0; i < number; i = i + 2)
+    int left, middle, right;
+    for (int i = 0; i < not ; i += 2)
     {
-        int left = i * (numPerThread * aggregation);
-        int right = ((i + 2) * numPerThread * aggregation) - 1;
-        int middle = left + (numPerThread * aggregation) - 1;
+        left = i * (numPerThread * step);
+        middle = ((i + 1) * numPerThread * step) - 1;
+        right = ((i + 2) * numPerThread * step) - 1;
         if (right >= numOfNumbers)
-        {
             right = numOfNumbers - 1;
-        }
-        merge(arr, left, middle, right);
+        merge(nums, left, middle, right);
     }
-    if (number / 2 >= 1)
-    {
-        merge_after_merge(arr, number / 2, aggregation * 2);
-    }
+    if (not / 2 >= 1)
+        merge_after_merge(nums, not / 2, step * 2);
 }
