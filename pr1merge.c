@@ -41,15 +41,12 @@ int main(int argc, char *argv[])
     gettimeofday(&stop, NULL);
     int ms = stop.tv_usec - start_time.tv_usec;
 
-    for (int i = numOfNumbers - 1; i >= 0; i--)
+    for (int i = 0; i < numOfNumbers; i++)
     {
         printf("%d ", num_list[i]);
     }
     printf("\n");
     // sort end
-
-    printf("%d\n", ms);
-
     return 0;
 }
 

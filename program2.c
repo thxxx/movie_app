@@ -17,7 +17,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 
-void workProcess(int *data, int end);
+void work_process(int *data, int end); // 사용하지 않는 함수이다.
 int *split_command_int(char *command);
 void merge(int data[], int p, int q, int r);
 void merge_after_merge(int nums[], int nop, int accelerator);
@@ -39,8 +39,7 @@ int main(int argc, char *argv[])
 
     // get input start
 
-    scanf("%d", &numOfNumbers);
-    printf(" 입력받은 숫자의 개수 : %d \n", numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
+    scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
     int num_list[numOfNumbers + 1];
 
@@ -97,8 +96,8 @@ int main(int argc, char *argv[])
                 dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
                 close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
                 close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
-                char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
-                if (execvp("./program1", cmd) < 0)
+                char *cmd[] = {"pr1merge", NULL}; // 명령어 인자를 만들어준다.
+                if (execvp("./pr1merge", cmd) < 0)
                     exit(0); // 명령어 실행하고 문제있으면 exit
             }
             else if (pid > 0)
@@ -132,8 +131,8 @@ int main(int argc, char *argv[])
                 dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
                 close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
                 close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
-                char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
-                if (execvp("./program1", cmd) < 0)
+                char *cmd[] = {"pr1merge", NULL}; // 명령어 인자를 만들어준다.
+                if (execvp("./pr1merge", cmd) < 0)
                     exit(0); // 명령어 실행하고 문제있으면 exit
             }
             else if (pid > 0)
@@ -150,11 +149,11 @@ int main(int argc, char *argv[])
             }
         }
     }
-    printf("\n");
     // 마무리 작업들
 
     int status;
     wait(&status); // 자식 프로세스가 종료될때까지 기다린다.
+
     //이제 아님
     dup2(std_in, 0);
     dup2(std_out, 1);
@@ -164,7 +163,6 @@ int main(int argc, char *argv[])
 
     gettimeofday(&stop, NULL);
     int ms = stop.tv_usec - start_time.tv_usec;
-    printf("ms : %d\n", ms);
 
     //각 프로세스의 출력값들을 따로 받아서 저장해야된다.
 
@@ -178,22 +176,23 @@ int main(int argc, char *argv[])
 
     int *outs;
     outs = split_command_int(read);
-    fclose(fp); // 파일 포인터 닫기
-    //remove("temp_out_os.txt"); // 읽은 임시파일 삭제
+    fclose(fp);                // 파일 포인터 닫기
+    remove("temp_out_os.txt"); // 읽은 임시파일 삭제
     // 최종적으로 합쳐준다.
     merge_after_merge(outs, numOfProcess, 1);
 
-    for (int i = 0; i < numOfNumbers; i++)
+    for (int i = numOfNumbers - 1; i >= 0; i--)
     {
         printf("%d ", outs[i]);
     }
 
     printf("\n");
+    printf("%d\n", ms);
 
     return 0;
 }
 
-void workProcess(int *data, int end)
+void work_process(int *data, int end)
 {
 
     pid_t pid;
@@ -208,8 +207,8 @@ void workProcess(int *data, int end)
         dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
         close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
         close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
-        char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
-        if (execvp("./program1", cmd) < 0)
+        char *cmd[] = {"pr1merge", NULL}; // 명령어 인자를 만들어준다.
+        if (execvp("./pr1merge", cmd) < 0)
             exit(0); // 명령어 실행하고 문제있으면 exit
     }
     else if (pid > 0)
@@ -252,11 +251,11 @@ int *split_command_int(char *command)
 void merge(int data[], int left, int middle, int right)
 {
     int le = left, mi = middle + 1, count = left;
-    int temp[right]; // 새 배열
+    int temp[right]; // 새 임시 배열
 
-    while (le <= middle && mi <= right)
+    while (le <= middle && mi <= right) // 한쪽이 비기전까지(범위끝에 다다르기 전까지) 계속 비교한다.
     {
-        if (data[le] <= data[mi])
+        if (data[le] <= data[mi]) // 작은값을 넣어준다.
             temp[count++] = data[le++];
         else
             temp[count++] = data[mi++];
@@ -269,7 +268,7 @@ void merge(int data[], int left, int middle, int right)
         temp[count++] = data[mi++];
 
     for (int i = left; i <= right; i++)
-        data[i] = temp[i];
+        data[i] = temp[i]; // 범위에 해당하는 만큼만 배열을 바꿔준다.
 }
 
 /* 각각 mergesort된 부분들을 합친다. */

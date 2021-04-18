@@ -11,56 +11,90 @@
 #include <fcntl.h>	  // For: File creation modes
 #include <signal.h>
 #include <sys/types.h>
-#include <pwd.h>
+#include <pwd.h> // getpwuid
 #include <sys/mman.h>
 #include <errno.h>
 #include <time.h>
 
-#define NUM_OF_SUP 14 // 표준 유닉스 프로그램 갯수
+#define NUM_OF_SUP 14 // 표준 유닉스 프로그램 갯수를 설정
 
-char *standardUnixProgram[] = {"ls", "exit", "help", "pwd", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir"};
+char *standardUnixProgram[] = {"pwd", "ls", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir", "ps"};
 
-void shell_loop(void);
-void DisplayPrompt(void);
-char *read_command_line(void);
-char **split_command_line(char *command);
-int shell_execute(char **args);
-int shell_execute_sup(char **args);
-int shell_execute_program(char **args);
-int sep_background(char **args);
-int sup_background(char **args);
+void shell_loop(void);					  // exit명령 전까지 miniShell을 반복한다.
+void PathDisplay(void);					  // [시간:분:초]아이디@경로> 출력
+char *read_command_line(void);			  // 들어온 입력을 전부 받아 단순 문자열로 저장한다.
+char **split_command_line(char *command); // 받은 전체 입력을 space를 기준으로 문자열로 나눠준다.
+int shell_execute(char **args);			  // 입력된 명령어에 해당하는 동작을 수행한다.
+int shell_execute_sup(char **args);		  // 표준 유닉스 프로그램을 실행한다.
+int shell_execute_program(char **args);	  // .가 입력되었을 때 해당 파일을 실행하도록 해준다
+int sep_background(char **args);		  // 프로그램을 백그라운드에서 실행한다. ps로 확인이 가능하다.
 
+// 백그라운드 동작 명령이 들어왔는지 체크한다.
 int background_exec = 0;
-char PATH[500];
 
 int main(int argc, char **argv)
 {
-	printf("minishell by 김호진 start! \n");
+	printf("\n");
+	printf("******************************************************************************\n");
+	printf("*                                                                            *\n");
+	printf("*                  minishell by 2017147505 김호진 start!                     *\n");
+	printf("*                                                                            *\n");
+	printf("*  구현 기능 목록 : cd, exit, Standard Unix Program, redirectioin( < , > )   *\n");
+	printf("*                   프로그램 실행(.), 백그라운드 동작(&) 기타 등등           *\n");
+	printf("******************************************************************************\n");
+	printf("\n");
+
 	// exit될때까지 계속반복하는 loop
 	shell_loop();
 
 	return 0;
 }
 
-/* [시간:분:초]아이디@경로> 출력 */
-void DisplayPrompt()
+/*
+main loop of the Mini-Shell
+ */
+void shell_loop(void)
 {
+	// Display help at startup
+	int status;
+	char *command_line;
+	char **arguments;
+	status = 1;
 
+	while (status)
+	{
+		// background 명령어인지 알려주는 변수를 초기화한다.
+		background_exec = 0;
+		PathDisplay();
+		command_line = read_command_line();
+		if (strcmp(command_line, "") == 0)
+			continue;
+		arguments = split_command_line(command_line);
+		//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
+		status = shell_execute(arguments);
+		//shell_execute 의 reuturn이 0 이면 종료.
+	}
+}
+
+/* 
+[시간:분:초]아이디@경로> 출력 
+*/
+void PathDisplay()
+{
 	//-------------------show the path-----------------------------
-
 	long size;
 	char *buf;
-	char *ptr;
+	char *road;
 
 	size = pathconf(".", _PC_PATH_MAX);
 
 	if ((buf = (char *)malloc((size_t)size)) != NULL)
-		ptr = getcwd(buf, (size_t)size);
+		road = getcwd(buf, (size_t)size);
 
 	//----------show the user name root------------------------
 
-	struct passwd *getpwuid(uid_t uid);
-	struct passwd *p;
+	struct passwd *getpwuid(uid_t uid); // 아이디를 가져온다.
+	struct passwd *user;
 	uid_t uid = 0;
 
 	time_t timer;
@@ -68,11 +102,11 @@ void DisplayPrompt()
 	timer = time(NULL);
 	t = localtime(&timer);
 
-	if ((p = getpwuid(uid)) == NULL)
+	if ((user = getpwuid(uid)) == NULL)
 		perror("getpwuid() error");
 	else
 	{
-		printf("[%d:%d:%d]%s@%s>", t->tm_hour, t->tm_min, t->tm_sec, p->pw_name, ptr);
+		printf("[%d:%d:%d]%s@%s$", t->tm_hour, t->tm_min, t->tm_sec, user->pw_name, road);
 	}
 	free(buf);
 }
@@ -81,43 +115,43 @@ void DisplayPrompt()
 char *read_command_line(void)
 {
 	int position = 0;
-	int buf_size = 30;
+	int buffer_size = 30;
 	char *command = (char *)malloc(sizeof(char) * 30);
-	char c;
+	char ch;
 
 	// command line을 char by char로 읽어서 command로 반환한다.
-	c = getchar();
-	while (c != EOF && c != '\n')
+	ch = getchar();
+	while (ch != EOF && ch != '\n')
 	{
-		if (c == '&')
+		// &가 명령어에 포함되어있으면 백그라운드에서 동작하라고 알린 후 없애준다.
+		if (ch == '&')
 		{
 			background_exec = 1;
+			ch = ' ';
 		}
-		command[position] = c;
+		command[position] = ch;
 
 		// 버퍼를 필요한 경우에 따라 재할당해서 크기를 늘려준다.
-		if (position >= buf_size)
+		if (position >= buffer_size)
 		{
-			buf_size += 8;
-			command = realloc(command, sizeof(char) * buf_size);
+			buffer_size += 8;
+			command = realloc(command, sizeof(char) * buffer_size);
 		}
-
 		position++;
-		c = getchar();
+		ch = getchar();
 	}
 	// 자꾸 마지막에 space가 없으면 키워드로 구분짓지 않는 문제가 발생해서 임의로 마지막에 space를 넣음.
 	command[position] = ' ';
 	return command;
 }
 
+// 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담는다.
 char **split_command_line(char *command)
 {
 	int position = 0;
-	int no_of_tokens = 64;
-	char **tokens = malloc(sizeof(char *) * no_of_tokens);
+	char **tokens = malloc(sizeof(char *) * 60);
 	char delim[] = " \n";
 
-	// 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담는다.
 	char *token = strtok(command, delim);
 
 	while (token != NULL)
@@ -131,21 +165,19 @@ char **split_command_line(char *command)
 }
 
 /*
-
-쉘에 들어온 명령어를 수행한다.
-
- */
+입력된 명령어에 해당하는 동작을 찾아서 수행한다. 
+*/
 int shell_execute(char **args)
 {
 
 	if (args[0] == NULL)
-	{ // Empty command
+	{ // Empty command 라면 loop의 status가 1이되어 while문을 빠져나감
 		return 1;
 	}
 
 	if (strcmp(args[0], "exit") == 0)
 	{
-		// loop의 status가 0이되어 while문을 빠져나감
+		//exit이 입력이 되면 loop의 status가 0이되어 while문을 빠져나감. 미니쉘 종료
 		return 0;
 	}
 
@@ -157,64 +189,67 @@ int shell_execute(char **args)
 	std_err = dup(2);
 
 	int i = 1;
-	int args_length = (int)(sizeof(args) / sizeof(args[0]));
-
-	int chars = (int)(sizeof(args) / sizeof(*args[0]));
+	int num_of_token = (int)(sizeof(args) / sizeof(args[0]));
 
 	// 프로그램의 실행 (.)
 	if (strncmp(*args, ".", 1) == 0)
 	{
 		if (background_exec == 0)
 		{
+			//백그라운드 동작이 아닌경우
 			shell_execute_program(args);
 		}
 		else if (background_exec == 1)
 		{
+			//백그라운드 동작인 경우
 			sep_background(args);
+			background_exec = 0;
 		}
 
+		// 빠져나가기전 복구해준다.
 		dup2(std_in, 0);
 		dup2(std_out, 1);
 		dup2(std_err, 2);
 
-		return 1;
+		return 1; // 이후를 체크하지 않고 바로 빠져나간다.
 	}
 
 	// redirection 체크
 	while (args[i] != NULL)
 	{
+		// input redirection인 경우 < 뒤의 파일을 열어서 입력으로 받는다.
 		if (strcmp(args[i], "<") == 0)
-		{										   // Input redirection
-			int inp = open(args[i + 1], O_RDONLY); // open after <
-			if (inp < 0)
+		{
+			int in = open(args[i + 1], O_RDONLY);
+			if (in < 0)
 			{
-				perror("os-kim - open 실패");
+				perror("os-kim - error");
 				return 1;
 			}
 
-			if (dup2(inp, 0) < 0)
+			if (dup2(in, 0) < 0)
 			{
-				perror("os-kim - write 실패");
+				perror("os-kim - error");
 				return 1;
 			}
-			close(inp);
+			close(in);
 			args[i] = NULL;
 			args[i + 1] = NULL;
 			i += 2;
 		}
-
+		// output redirection인 경우 출력값들을 > 다음에 오는 파일에 작성되도록 한다.
 		else if (strcmp(args[i], ">") == 0)
-		{ // Output redirection
+		{
 			int out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 			if (out < 0)
 			{
-				perror("os-kim - open 실패");
+				perror("os-kim - error");
 				return 1;
 			}
 
 			if (dup2(out, 1) < 0)
 			{
-				perror("os-kim - write 실패");
+				perror("os-kim - error");
 				return 1;
 			}
 			close(out);
@@ -228,14 +263,16 @@ int shell_execute(char **args)
 			i++;
 		}
 	}
-	// 리디렉션이면 위에서 실행됨
+	// 리디렉션이면 위에서 실행된 후 넘어온다.
 
+	//
+	// cd 명령어 : 구현기능 - "cd", "cd /path", "cd ..", "cd /",
+	//
 	if (strcmp(args[0], "cd") == 0)
 	{
-		int chdir_rtrn;
+		int chdir_return;
 
 		char path[500];
-
 		if (args[1] == NULL)
 		{
 			args[1] = "/";
@@ -243,10 +280,10 @@ int shell_execute(char **args)
 
 		if (strncmp(args[1], "/", 1) != 0)
 		{
-			getcwd(path, sizeof(path)); // 현제 디렉토리를 path에 저장한다. 최대 크기는 sizeof(path) = 500
+			getcwd(path, sizeof(path)); // 현재 디렉토리를 path에 저장한다. 최대 크기는 sizeof(path) = 500
 			strcpy(path, "/");			// 현재 디렉토리 뒤에 / 를 붙이고
 			strcpy(path, args[1]);		// 두번째 인자로 들어온 이동할 디렉토리도 붙여준다
-			chdir_rtrn = chdir(path);	// 현재의 작업 디렉토리를 path로 바꿔준다. 에러발생했다면 음수값 리턴.
+			chdir_return = chdir(path); // 현재의 작업 디렉토리를 path로 바꿔준다. 에러발생했다면 음수값 리턴.
 		}
 		else if (strcmp(args[1], "..") == 0) // 두번째 인자가 .. 라면 이전 디렉토리로 간다!
 		{
@@ -255,46 +292,36 @@ int shell_execute(char **args)
 			int s = strlen(path1);			 // 길이 s에 저장
 			//strcpy(path, path1);
 			path[s] = (char)0; // 없애버린다.
-			chdir_rtrn = chdir(path);
-		}
-		else if (strcmp(args[1], "-") == 0)
-		{
-			chdir_rtrn = chdir(PATH);
-		}
-		else if (strncmp(args[1], "/", strlen("/")) == 0)
-		{
-			chdir_rtrn = chdir(args[1]);
+			chdir_return = chdir(path);
 		}
 		else if (strcmp(args[1], "/") == 0)
 		{
-			chdir_rtrn = chdir(args[1]);
+			chdir_return = chdir(args[1]);
 		}
 		else
 		{
-			printf("incorrect directory");
+			printf("cd: %s: No such file or directory\n", args[1]);
 		}
 
 		//error handling
-		if (chdir_rtrn < 0)
+		if (chdir_return < 0)
 		{
 			printf("Error while changing the directory, error is : %s \n", strerror(errno));
-			printf("%s", PATH);
 		}
 	}
 	// 앞에 해당하는게 있으면 리턴되어서 여기까지 안온다.
 
+	/*
+    * 
+    * 표준 유닉스 프로그램 명령어인지 체크한다.
+    * 
+    */
 	for (int j = 0; j < NUM_OF_SUP; j++)
 	{
 		if (strcmp(args[0], standardUnixProgram[j]) == 0)
 		{
-			if (background_exec == 0)
-			{
-				shell_execute_sup(args);
-			}
-			else if (background_exec == 1)
-			{
-				sup_background(args);
-			}
+
+			shell_execute_sup(args);
 
 			dup2(std_in, 0);
 			dup2(std_out, 1);
@@ -303,10 +330,7 @@ int shell_execute(char **args)
 			return 1;
 		}
 	}
-	// For other commands, execute a child process
-	// int ret_status = start_process(args);
 
-	// Restore the Standard Input and Output file descriptors
 	dup2(std_in, 0);
 	dup2(std_out, 1);
 	dup2(std_err, 2);
@@ -316,341 +340,202 @@ int shell_execute(char **args)
 }
 
 /*
-
-main loop of the Mini-Shell
-
- */
-void shell_loop(void)
-{
-
-	// Display help at startup
-	int status;
-
-	char *command_line;
-	char **arguments;
-	status = 1;
-
-	while (status)
-	{
-		background_exec = 0;
-		DisplayPrompt();
-		command_line = read_command_line();
-		if (strcmp(command_line, "") == 0)
-		{
-			continue;
-		}
-		arguments = split_command_line(command_line);
-
-		//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
-		status = shell_execute(arguments);
-		getcwd(PATH, sizeof(PATH));
-		//shell_execute 의 reuturn이 0 이면 종료.
-	}
-}
-
-/*
-
 스탠다드 유닉스 프로그램을 실행하는 함수
-
+Standard Unix Program
 */
 int shell_execute_sup(char **args)
 {
+	char **argv = malloc(sizeof(char *) * 50);
+	int i = 0;
+	while (args[i] != NULL)
 	{
-		pid_t pid;
+		argv[i] = args[i];
+		i++;
+	}
+	argv[i] = (char *)0; // 마지막엔 null 포인터를 넣어준다.
 
+	pid_t pid = fork(); // 부모 프로세스의 메모리를 복제한 자식 프로세스 생성
+
+	if (pid == 0)
+	{
+		// child process
+		if (execvp(argv[0], argv) < 0)
+			exit(0); // 명령어 실행하고 문제있으면 exit
+	}
+	else if (pid > 0)
+	{
+		// 부모 프로세스 코드 시작
 		int status;
-		pid = fork();
-
-		char temp_out[] = "temp_out.txt";
-
-		if (pid == 0)
-		{ //child process
-			int in, out;
-
-			char **argv = malloc(sizeof(char *) * 50);
-			int i = 0;
-			while (args[i] != NULL)
-			{
-				argv[i] = args[i];
-				i++;
-			}
-			argv[i] = (char *)0; // 마지막엔 null 포인터를 넣어준다.
-
-			// open input and output files
-			out = open(temp_out, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-
-			// replace standard output with output file
-			dup2(out, 1);
-
-			// close unused file descriptors
-			close(out);
-
-			execvp(argv[0], argv);
-
-			exit(1); // 위에서 exec이 실행되면 이건 실행이 안돼야하는게 맞다. 따라서 정상이면 0, 비정상이면 1
-		}
-		else if (pid > 0) // parent process
-		{
-
-			pid = wait(&status); // wait child
-
-			char buffer[5] = {
-				0,
-			}; // 문자열 데이터 4바이트 NULL 1바이트. 4 + 1 = 5
-			int count = 0;
-			int total = 0;
-
-			FILE *fp = fopen(temp_out, "r"); // hello.txt 파일을 읽기 모드(r)로 열기.
-											 // 파일 포인터를 반환
-
-			while (feof(fp) == 0) // 파일 포인터가 파일의 끝이 아닐 때 계속 반복
-			{
-				count = fread(buffer, sizeof(char), 4, fp); // 1바이트씩 4번(4바이트) 읽기
-				printf("%s", buffer);						// 읽은 내용 출력
-				memset(buffer, 0, 5);						// 버퍼를 0으로 초기화
-				total += count;								// 읽은 크기 누적
-			}
-			fclose(fp); // 파일 포인터 닫기
-
-			// input, output file 삭제해야함.
-			remove(temp_out);
-			// print
-
-			return 1;
-		}
-		else
-		{ // Error in forking
-			perror("error");
-		}
-
+		// parent process
+		pid = waitpid(pid, &status, 0); // wait child. 이번엔 wait를 사용
+		free(argv);
 		return 1;
 	}
+	else
+	{ // pid가 음수값이라면 fork시 error가 발생한 것.
+		free(argv);
+		perror(" forling error");
+	}
+	return 1;
 }
 
 /*
-
-.가 입력되었을 때 해당 파일을 실행하도록 해준다
-
+.가 입력되었을 때 해당 프로그램을 실행하도록 해준다.
+shell_execute_sup와 비슷한 부분은 주석 최소화
 */
 int shell_execute_program(char **args)
 {
-	pid_t pid;
+	pid_t pid = fork();
+
+	int k = 0;
+	char *argv[20];
+	while (args[k] != NULL)
+	{
+		argv[k] = (char *)args[k];
+		k++;
+	}
+	argv[k] = NULL;
 
 	int status;
-	pid = fork();
 
 	if (pid == 0)
-	{ //child process
-
+	{
 		int in, out;
-		char *argv[] = {args[0], (char *)0};
-		if (strcmp(args[1], "<") == 0)
-		{ // open input and output files
-			in = open(args[2], O_RDONLY);
-			//out = open("output.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+		int i = 0;
 
-			dup2(in, 0);
-			//dup2(out, 1);
+		while (args[i] != NULL)
+		{
+			if (strcmp(args[i], "<") == 0)
+			{ // open input and output files
+				in = open(args[i + 1], O_RDONLY);
+				dup2(in, 0);
+				close(in);
 
-			close(in);
-			//close(out);
+				while (args[i] != NULL) // what if redirection is double!
+				{
+					if (strcmp(args[i], ">") == 0)
+					{
+						out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
-			execvp(args[0], args);
+						dup2(out, 1);
+
+						close(out);
+					}
+					i++;
+				}
+
+				if (execvp(argv[0], argv) < 0)
+					exit(0);
+			}
+			else if (strcmp(args[i], ">") == 0)
+			{ // open input and output files
+				out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+
+				dup2(out, 1);
+
+				close(out);
+
+				if (execvp(argv[0], argv) < 0)
+					exit(0);
+			}
+			i++;
 		}
-		else if (strcmp(args[1], ">") == 0)
-		{ // open input and output files
-			out = open(args[2], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
-			//dup2(in, 0);
-			dup2(out, 1);
-
-			//close(in);
-			close(out);
-
-			execvp(args[0], args);
-		}
-
-		execv(args[0], argv);
+		execvp(argv[0], argv);
 		exit(1);
 	}
-	else if (pid > 0) // parent process
+	else if (pid > 0)
 	{
-
-		pid = wait(&status); // wait child
-		int returnValue;
-		if (WIFEXITED(status))
-		{
-			returnValue = WEXITSTATUS(status);
-		}
-
-		//remove("output.txt");
+		// parent process
+		pid = waitpid(pid, &status, 0); // wait child. 이번엔 wait를 사용
 		return 1;
 	}
 	else
-	{ // Error in forking
-		perror("error");
+	{
+		perror("forking error");
 	}
 	return 1;
 }
 
+// 백그라운드
 int sep_background(char **args)
 {
-	printf("백그라운드 동작 \n");
-	pid_t pid;
-	pid_t pid_child;
+	pid_t pid = fork();
+
+	int k = 0;
+	char *argv[20];
+	while (args[k] != NULL)
+	{
+		argv[k] = (char *)args[k];
+		k++;
+	}
+	argv[k] = NULL;
 
 	int status;
-	pid = fork();
 
 	if (pid == 0)
-	{ //child process
-
+	{
 		int in, out;
-		char *argv[] = {args[0], (char *)0};
-		if (strcmp(args[1], "<") == 0)
-		{ // open input and output files
-			in = open(args[2], O_RDONLY);
-			//out = open("output.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+		int i = 0;
 
-			dup2(in, 0);
-			//dup2(out, 1);
+		while (args[i] != NULL)
+		{
+			if (strcmp(args[i], "<") == 0)
+			{ // open input and output files
+				in = open(args[i + 1], O_RDONLY);
+				dup2(in, 0);
+				close(in);
+				int re = 0;
+				while (args[i] != NULL) // what if redirection is double!
+				{
+					if (strcmp(args[i], ">") == 0)
+					{
+						re = i;
+					}
+					i++;
+				}
+				if (re != 0)
+				{
+					out = open(args[re + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
-			close(in);
-			//close(out);
+					dup2(out, 1);
 
-			execvp(args[0], args);
+					close(out);
+				}
+				else if (re == 0)
+				{
+					dup2(0, 1);
+				}
+
+				if (execvp(argv[0], argv) < 0)
+					exit(0);
+			}
+			else if (strcmp(args[i], ">") == 0)
+			{ // open input and output files
+				out = open(args[i + 1], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
+
+				dup2(out, 1);
+
+				close(out);
+
+				if (execvp(argv[0], argv) < 0)
+					exit(0);
+			}
+			i++;
 		}
-		else if (strcmp(args[1], ">") == 0)
-		{ // open input and output files
-			out = open(args[2], O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
 
-			//dup2(in, 0);
-			dup2(out, 1);
-
-			//close(in);
-			close(out);
-
-			execvp(args[0], args);
-		}
-		sleep(10);
-		execv(args[0], argv);
+		execvp(argv[0], argv);
 		exit(1);
 	}
-	else if (pid > 0) // parent process
+	else if (pid > 0)
 	{
-		printf("기다리지 않고 동작 \n");
-		while (waitpid(pid, &status, WNOHANG) == 0)
-		{
-			char *command_line;
-			char **arguments;
-			status = 1;
-
-			background_exec = 0;
-			DisplayPrompt();
-			command_line = read_command_line();
-			if (strcmp(command_line, "") == 0)
-			{
-				continue;
-			}
-			arguments = split_command_line(command_line);
-
-			//arguments 는 그냥 키워드들 배열. 키워드들을 parameter로 전달하고 커맨드를 수행하도록 한다.
-			status = shell_execute(arguments);
-		}
-		printf("sdasdqdwww\n");
-		//remove("output.txt");
+		// parent process
+		printf("[back] %d\n", pid);
 		return 1;
 	}
 	else
-	{ // Error in forking
-		perror("error");
-	}
-	return 1;
-}
-
-int sup_background(char **args)
-{
-	printf("백그라운드 동작 \n");
 	{
-		pid_t pid;
-
-		int status;
-		pid = fork();
-
-		char temp_out[] = "temp_out.txt";
-
-		if (pid == 0)
-		{ //child process
-			int in, out;
-
-			// argv에 args를 넣어줘야한다.
-			char *argv[] = {args[0], (char *)0};
-
-			// open input and output files
-			in = open("input.txt", O_RDONLY);
-			out = open(temp_out, O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
-			// replace standard input with input file
-			dup2(in, 0);
-			// replace standard output with output file
-			dup2(out, 1);
-
-			// close unused file descriptors
-			close(in);
-			close(out);
-
-			execvp(argv[0], argv); // ls -l  -> argv[0] = "ls"
-
-			exit(1); // 위에서 exec이 실행되면 이건 실행이 안돼야하는게 맞다. 따라서 정상이면 0, 비정상이면 1
-		}
-		else if (pid > 0) // parent process
-		{
-
-			waitpid(pid, &status, WNOHANG); // wait child
-
-			if (WIFEXITED(status))
-			{
-				printf("정상종료\n");
-				char buffer[5] = {
-					0,
-				}; // 문자열 데이터 4바이트 NULL 1바이트. 4 + 1 = 5
-				int count = 0;
-				int total = 0;
-
-				FILE *fp = fopen(temp_out, "r"); // hello.txt 파일을 읽기 모드(r)로 열기.
-												 // 파일 포인터를 반환
-
-				while (feof(fp) == 0) // 파일 포인터가 파일의 끝이 아닐 때 계속 반복
-				{
-					count = fread(buffer, sizeof(char), 4, fp); // 1바이트씩 4번(4바이트) 읽기
-					printf("%s", buffer);						// 읽은 내용 출력
-					memset(buffer, 0, 5);						// 버퍼를 0으로 초기화
-					total += count;								// 읽은 크기 누적
-				}
-				fclose(fp); // 파일 포인터 닫기
-
-				// input, output file 삭제해야함.
-				remove(temp_out);
-				// print
-				printf("리턴값 %d\n", WEXITSTATUS(status));
-			}
-			else if (WIFSIGNALED(status))
-			{
-				printf("신호받았음\n");
-				printf("신호번호 %d\n", WTERMSIG(status));
-			}
-
-			return 1;
-		}
-		else
-		{ // Error in forking
-			perror("error");
-		}
-
-		return 1;
+		perror("forking error");
 	}
-
 	return 1;
 }
-
-
-

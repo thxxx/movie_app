@@ -19,14 +19,13 @@
 #include <errno.h>
 #include <pthread.h>
 
-void mergeSort(int data[], int p, int r);
-void *thread_merge_sort(void *arg);
-void merge_sections_of_array(int gloNumList[], int number, int aggregation);
+void merge_sort(int data[], int p, int r);
+void *merge_sort_at_thread(void *tid);
+void merge_after_merge(int gloNumList[], int number, int aggregation);
 void merge(int data[], int p, int q, int r);
 
 int numOfThread = 1;
 int gloNumList[100];
-int mynum = 0;
 
 int numOfNumbers = 0;
 int numPerThread = 0;
@@ -42,8 +41,7 @@ int main(int argc, char *argv[])
 
     // get input start
 
-    scanf("%d", &numOfNumbers);
-    printf(" 입력받은 숫자의 개수 : %d \n", numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
+    scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
     int num_list[numOfNumbers + 1];
 
@@ -63,7 +61,6 @@ int main(int argc, char *argv[])
     for (int i = 0; i < numOfNumbers; i++)
     {
         gloNumList[i] = num_list[i];
-        printf("%d ", num_list[i]);
     }
 
     // ---------------------입력받기 완료------------------
@@ -81,8 +78,8 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < numOfThread; i++)
     {
-        // 각각의 쓰레드에 thread_merge_sort함수를 실행하도록 한다. 공유하는 데이터는 인자로 넘겨줄 필요가 없다. 함수에게는 i를 전달한다.
-        int res = pthread_create(&threads[i], NULL, thread_merge_sort, (void *)(long)i);
+        // 각각의 쓰레드에 merge_sort_at_thread함수를 실행하도록 한다. 공유하는 데이터는 인자로 넘겨줄 필요가 없다. 함수에게는 i를 전달한다.
+        int res = pthread_create(&threads[i], NULL, merge_sort_at_thread, (void *)(long)i);
         if (res)
         {
             printf("ERROR; return code from pthread_create() is %d\n", res);
@@ -95,7 +92,7 @@ int main(int argc, char *argv[])
         //쓰레드의 종료를 기다린다.
         pthread_join(threads[i], NULL);
     }
-    merge_sections_of_array(gloNumList, numOfThread, 1);
+    merge_after_merge(gloNumList, numOfThread, 1);
 
     // 마무리 작업들
     gettimeofday(&stop, NULL);
@@ -105,77 +102,75 @@ int main(int argc, char *argv[])
     dup2(std_out, 1);
     dup2(std_err, 2);
 
-    printf("\n정렬 후\n");
+    printf("\n");
     for (int i = numOfNumbers - 1; i >= 0; i--)
     {
         printf("%d ", gloNumList[i]);
     }
-    printf("\n 걸린 시간: %dms", ms);
+    printf("\n%d\n", ms);
     // sort end
 
     return 0;
 }
 
-void *thread_merge_sort(void *arg)
+void *merge_sort_at_thread(void *tid)
 {
-    mynum += 1;
-    int thread_id = (long)arg;
-    int left = thread_id * (numPerThread);
-    int right = (thread_id + 1) * (numPerThread)-1;
+    int threadId = (long)tid;
+    int left = threadId * (numPerThread);
+    int right = (threadId + 1) * (numPerThread)-1;
 
-    printf("\nI am working in %d thread\n", mynum);
-
-    if (thread_id == numOfThread - 1)
+    if (threadId == numOfThread - 1)
     {
         right += remaind;
     }
-    int middle = left + (right - left) / 2;
+    int middle;
     if (left < right)
     {
-        mergeSort(gloNumList, left, right);
-        mergeSort(gloNumList, left + 1, right);
+        middle = (right + left) / 2;
+        merge_sort(gloNumList, left, right);
+        merge_sort(gloNumList, left + 1, right);
         merge(gloNumList, left, middle, right);
     }
     return NULL;
 }
 
-void mergeSort(int data[], int p, int r)
+void merge_sort(int data[], int left, int right)
 {
-    int q;
-    if (p < r)
+    int middle;
+    if (left < right)
     {
-        q = (p + r) / 2;
-        mergeSort(data, p, q);
-        mergeSort(data, q + 1, r);
-        merge(data, p, q, r);
+        middle = (left + right) / 2;
+        merge_sort(data, left, middle);
+        merge_sort(data, middle + 1, right);
+        merge(data, left, middle, right);
     }
 }
 
 void merge(int data[], int left, int middle, int right)
 {
     int le = left, mi = middle + 1, count = left;
-    int tmp[right]; // 새 배열
+    int temp[right]; // 새 임시 배열
 
-    while (le <= middle && mi <= right)
+    while (le <= middle && mi <= right) // 한쪽이 비기전까지(범위끝에 다다르기 전까지) 계속 비교한다.
     {
-        if (data[le] <= data[mi])
-            tmp[count++] = data[le++];
+        if (data[le] <= data[mi]) // 작은값을 넣어준다.
+            temp[count++] = data[le++];
         else
-            tmp[count++] = data[mi++];
+            temp[count++] = data[mi++];
     }
 
     while (le <= middle)
-        tmp[count++] = data[le++];
+        temp[count++] = data[le++];
 
     while (mi <= right)
-        tmp[count++] = data[mi++];
+        temp[count++] = data[mi++];
 
     for (int i = left; i <= right; i++)
-        data[i] = tmp[i];
+        data[i] = temp[i]; // 범위에 해당하는 만큼만 배열을 바꿔준다.
 }
 
 /* 각각 mergesort된 부분들을 합친다. */
-void merge_sections_of_array(int arr[], int number, int aggregation)
+void merge_after_merge(int arr[], int number, int aggregation)
 {
     for (int i = 0; i < number; i = i + 2)
     {
@@ -190,6 +185,6 @@ void merge_sections_of_array(int arr[], int number, int aggregation)
     }
     if (number / 2 >= 1)
     {
-        merge_sections_of_array(arr, number / 2, aggregation * 2);
+        merge_after_merge(arr, number / 2, aggregation * 2);
     }
 }
