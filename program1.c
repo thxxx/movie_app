@@ -11,10 +11,10 @@
 #include <sys/time.h>
 #include <sys/timeb.h>
 
-void mergeSort(int data[], int left, int right)
-void merge(int data[], int left, int middle, int right)
+void mergeSort(int data[], int left, int right);
+void merge(int data[], int left, int middle, int right);
 
-    int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 
 {
     int numOfNumbers;

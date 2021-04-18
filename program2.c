@@ -65,7 +65,6 @@ int main(int argc, char *argv[])
 
     numPerProcess = numOfNumbers / numOfProcess;
     int remaind = numOfNumbers % numOfProcess;
-    int nppCopy = numPerProcess;
 
     // 지금 부터 내 출력이 입력으로 들어옴
     int out = open("temp_out_os.txt", O_WRONLY | O_TRUNC | O_CREAT, S_IRUSR | S_IRGRP | S_IWGRP | S_IWUSR);
@@ -80,55 +79,105 @@ int main(int argc, char *argv[])
             {
                 data[i] = num_list[numPerProcess * j + i];
             }
-            workProcess(data, numPerProcess + remaind);
+            pid_t pid;
+
+            int fds[2]; // 2개의 fd를 담을 배열을 선언한다.
+            pipe(fds);  // pipe를 호출해 두 개의 fd로 배열을 채워준다.
+
+            pid = fork();
+
+            if (pid == 0)
+            {                                     // if pid == 0, 자식 프로세스
+                dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
+                close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
+                close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
+                char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
+                if (execvp("./program1", cmd) < 0)
+                    exit(0); // 명령어 실행하고 문제있으면 exit
+            }
+            else if (pid > 0)
+            {
+                // 부모 프로세스 코드 시작
+                close(fds[READ]);                                      // 쓰기만 하면되는 부모 프로세스에서는 필요 없는 fd라 닫아준다.
+                dprintf(fds[WRITE], "%d \n", numPerProcess + remaind); // fds[1]에 출력을 쓴다.
+
+                for (int i = 0; i < numPerProcess + remaind; i++)
+                {
+                    dprintf(fds[WRITE], "%d \n", data[i]); // fds[1]에 출력을 쓴다.
+                }
+                close(fds[WRITE]);
+            }
         }
         else
         {
             for (int i = 0; i < numPerProcess; i++)
             {
-                data[i] = num_list[nppCopy * j + i];
+                data[i] = num_list[numPerProcess * j + i];
             }
-            workProcess(data, numPerProcess);
+            pid_t pid;
+
+            int fds[2]; // 2개의 fd를 담을 배열을 선언한다.
+            pipe(fds);  // pipe를 호출해 두 개의 fd로 배열을 채워준다.
+
+            pid = fork();
+
+            if (pid == 0)
+            {                                     // if pid == 0, 자식 프로세스
+                dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
+                close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
+                close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
+                char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
+                if (execvp("./program1", cmd) < 0)
+                    exit(0); // 명령어 실행하고 문제있으면 exit
+            }
+            else if (pid > 0)
+            {
+                // 부모 프로세스 코드 시작
+                close(fds[READ]);                            // 쓰기만 하면되는 부모 프로세스에서는 필요 없는 fd라 닫아준다.
+                dprintf(fds[WRITE], "%d \n", numPerProcess); // fds[1]에 출력을 쓴다.
+
+                for (int i = 0; i < numPerProcess; i++)
+                {
+                    dprintf(fds[WRITE], "%d \n", data[i]); // fds[1]에 출력을 쓴다.
+                }
+                close(fds[WRITE]);
+            }
         }
     }
     printf("\n");
     // 마무리 작업들
 
+    //이제 아님
+    dup2(std_in, 0);
+    dup2(std_out, 1);
+    dup2(std_err, 2);
     //
-
+    for (int i = 0; i < numOfProcess; i++)
+    {
+        int status;
+        wait(&status); // 자식 프로세스가 종료될때까지 기다린다.
+    }
     //
 
     gettimeofday(&stop, NULL);
     int ms = stop.tv_usec - start_time.tv_usec;
+    printf("ms : %d\n", ms);
 
     //각 프로세스의 출력값들을 따로 받아서 저장해야된다.
 
-    char buffer[5] = {
-        0,
-    }; // 문자열 데이터 4바이트 NULL 1바이트. 4 + 1 = 5
-
-    int count = 0;
-    int total = 0;
-
     FILE *fp = fopen("temp_out_os.txt", "r"); // hello.txt 파일을 읽기 모드(r)로 열기.
                                               // 파일 포인터를 반환
-    int co = 0;
-    char *command = (char *)malloc(sizeof(char) * 100);
-    char commandd[100] = {
+    char read[100] = {
         0,
     };
 
+    fread(read, 1, 200, fp); //전체 읽기
+
     int *outs;
-
-    fread(commandd, 1, 200, fp); //전체 읽기
-
-    outs = split_command_int(commandd);
-
-    int i = 0;
-    fclose(fp); // 파일 포인터 닫기
-
-    remove("temp_out_os.txt");
-
+    outs = split_command_int(read);
+    fclose(fp);                // 파일 포인터 닫기
+    remove("temp_out_os.txt"); // 읽은 임시파일 삭제
+    // 최종적으로 합쳐준다.
     merge_after_merge(outs, numOfProcess, 1);
 
     for (int i = 0; i < numOfNumbers; i++)
@@ -136,10 +185,6 @@ int main(int argc, char *argv[])
         printf("%d ", outs[i]);
     }
 
-    //이제 아님
-    dup2(std_in, 0);
-    dup2(std_out, 1);
-    dup2(std_err, 2);
     printf("\n");
 
     return 0;
@@ -147,45 +192,38 @@ int main(int argc, char *argv[])
 
 void workProcess(int *data, int end)
 {
-    int numOfProcess = 1;
 
-    pid_t pids[numOfProcess];
+    pid_t pid;
 
-    char *com = (char *)malloc(sizeof(char) * 30);
+    int fds[2]; // 2개의 fd를 담을 배열을 선언한다.
+    pipe(fds);  // pipe를 호출해 두 개의 fd로 배열을 채워준다.
 
-    for (int i = 0; i < numOfProcess; i++)
+    pid = fork();
+
+    if (pid == 0)
+    {                                     // if pid == 0, 자식 프로세스
+        dup2(fds[READ], STDIN_FILENO);    // fds[0]으로 표준입력을 넘겨준다.
+        close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
+        close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
+        char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
+        if (execvp("./program1", cmd) < 0)
+            exit(0); // 명령어 실행하고 문제있으면 exit
+    }
+    else if (pid > 0)
     {
-        int fds[2]; // 2개의 fd를 담을 배열을 정의한다.
-        pipe(fds);  // pipe를 호출해 두 개의 fd로 배열을 채워준다.
+        // 부모 프로세스 코드 시작
+        close(fds[READ]);                  // 쓰기만 하면되는 부모 프로세스에서는 필요 없는 fd라 닫아준다.
+        dprintf(fds[WRITE], "%d \n", end); // fds[1]에 출력을 쓴다.
 
-        if ((pids[i] = fork()) == 0)
-        {                                  // if pid == 0, 자식 프로세스
-            dup2(fds[READ], STDIN_FILENO); // fds[0]으로 표준입력을 넘겨준다.
-            //dup2(fds[WRITE], com);            //출력이 어디로 되야할까
-            close(fds[READ]);                 // fds[0]은 자식 프로세스에서 더이상 필요하지 않기 떄문에 닫아준다. 복사본이기 때문에(?)
-            close(fds[WRITE]);                // 원래부터 필요없었던 fd라 닫아준다.
-            char *cmd[] = {"program1", NULL}; // 명령어 인자를 만들어준다.
-            if (execvp("./program1", cmd) < 0)
-                exit(0); // 명령어 실행하고 문제있으면 exit
-        }
-        else if (pids[i] > 0)
+        for (int i = 0; i < end; i++)
         {
-            // 부모 프로세스 코드 시작
-            close(fds[READ]);                  // 쓰기만 하면되는 부모 프로세스에서는 필요 없는 fd라 닫아준다.
-            dprintf(fds[WRITE], "%d \n", end); // fds[1]에 출력을 쓴다.
-
-            for (int i = 0; i < end; i++)
-            {
-                dprintf(fds[WRITE], "%d \n", data[i]); // fds[1]에 출력을 쓴다.
-            }
-            close(fds[WRITE]);
+            dprintf(fds[WRITE], "%d \n", data[i]); // fds[1]에 출력을 쓴다.
         }
+        close(fds[WRITE]);
     }
     int status;
-    for (int i = 0; i < numOfProcess; i++)
-    {
-        waitpid(pids[i], &status, 0); // 자식 프로세스가 종료될때까지 기다린다.
-    }
+
+    waitpid(pid, &status, 0); // 자식 프로세스가 종료될때까지 기다린다.
 }
 
 // 입력받은 command를 delimeter로 구분하여 나누어서 tokens에 담아 반환한다. int로 반환한다.
