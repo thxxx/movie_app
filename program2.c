@@ -10,6 +10,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/timeb.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -75,6 +76,11 @@ int main(int argc, char *argv[])
     {
         if (j == numOfProcess - 1)
         {
+            for (int i = 0; i < numOfProcess - 1; i++)
+            {
+                int status;
+                wait(&status); // 자식 프로세스가 종료될때까지 기다린다.
+            }
             for (int i = 0; i < (numPerProcess + remaind); i++)
             {
                 data[i] = num_list[numPerProcess * j + i];
@@ -147,16 +153,13 @@ int main(int argc, char *argv[])
     printf("\n");
     // 마무리 작업들
 
+    int status;
+    wait(&status); // 자식 프로세스가 종료될때까지 기다린다.
     //이제 아님
     dup2(std_in, 0);
     dup2(std_out, 1);
     dup2(std_err, 2);
     //
-    for (int i = 0; i < numOfProcess; i++)
-    {
-        int status;
-        wait(&status); // 자식 프로세스가 종료될때까지 기다린다.
-    }
     //
 
     gettimeofday(&stop, NULL);
@@ -175,8 +178,8 @@ int main(int argc, char *argv[])
 
     int *outs;
     outs = split_command_int(read);
-    fclose(fp);                // 파일 포인터 닫기
-    remove("temp_out_os.txt"); // 읽은 임시파일 삭제
+    fclose(fp); // 파일 포인터 닫기
+    //remove("temp_out_os.txt"); // 읽은 임시파일 삭제
     // 최종적으로 합쳐준다.
     merge_after_merge(outs, numOfProcess, 1);
 

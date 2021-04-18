@@ -24,7 +24,7 @@ void *thread_merge_sort(void *arg);
 void merge_sections_of_array(int gloNumList[], int number, int aggregation);
 void merge(int data[], int p, int q, int r);
 
-int numof_thread = 1;
+int numOfThread = 1;
 int gloNumList[100];
 int mynum = 0;
 
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
     if (argv[1] != NULL)
     {
-        numof_thread = atoi(argv[1]);
+        numOfThread = atoi(argv[1]);
     }
 
     for (int i = 0; i < numOfNumbers; i++)
@@ -70,16 +70,16 @@ int main(int argc, char *argv[])
 
     // 글로벌 변수로 만들어 줌으로써 쓰레드간에 공유가 되도록 한다.
 
-    numPerThread = numOfNumbers / numof_thread;
-    remaind = numOfNumbers % numof_thread;
+    numPerThread = numOfNumbers / numOfThread;
+    remaind = numOfNumbers % numOfThread;
 
     struct timeval stop, start_time;
     gettimeofday(&start_time, NULL);
 
     // 쓰레드를 받은 입력의 개수만큼 생성한다.
-    pthread_t threads[numof_thread];
+    pthread_t threads[numOfThread];
 
-    for (int i = 0; i < numof_thread; i++)
+    for (int i = 0; i < numOfThread; i++)
     {
         // 각각의 쓰레드에 thread_merge_sort함수를 실행하도록 한다. 공유하는 데이터는 인자로 넘겨줄 필요가 없다. 함수에게는 i를 전달한다.
         int res = pthread_create(&threads[i], NULL, thread_merge_sort, (void *)(long)i);
@@ -90,12 +90,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (int i = 0; i < numof_thread; i++)
+    for (int i = 0; i < numOfThread; i++)
     {
         //쓰레드의 종료를 기다린다.
         pthread_join(threads[i], NULL);
     }
-    merge_sections_of_array(gloNumList, numof_thread, 1);
+    merge_sections_of_array(gloNumList, numOfThread, 1);
 
     // 마무리 작업들
     gettimeofday(&stop, NULL);
@@ -125,7 +125,7 @@ void *thread_merge_sort(void *arg)
 
     printf("\nI am working in %d thread\n", mynum);
 
-    if (thread_id == numof_thread - 1)
+    if (thread_id == numOfThread - 1)
     {
         right += remaind;
     }
