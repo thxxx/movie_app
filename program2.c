@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
 {
 
-    int numOfProcess = 1;
+    int numOfProcess = 2;
     int numOfNumbers = 0;
     int numPerProcess = 0;
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
         num_list[i] = numbers;
     }
 
-    if (argv[1] != NULL)
+    if (argc > 3)
     {
         numOfProcess = atoi(argv[1]); // argv[1] is the number of processes
     }
@@ -77,10 +77,13 @@ int main(int argc, char *argv[])
     {
         if (j == numOfProcess - 1)
         {
-            for (int i = 0; i < numOfProcess - 1; i++)
+            if (numOfProcess != 1)
             {
-                int status;
-                wait(&status); // 다른 프로세스들이 종료될때까지 기다린다.
+                for (int i = 0; i < numOfProcess - 1; i++)
+                {
+                    int status;
+                    wait(&status); // 다른 프로세스들이 종료될때까지 기다린다.
+                }
             }
             for (int i = 0; i < (numPerProcess + remaind); i++)
             {

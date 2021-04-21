@@ -17,8 +17,8 @@
 #include <time.h>
 
 #define NUM_OF_SUP 14 // 표준 유닉스 프로그램 갯수를 설정
-
-char *standardUnixProgram[] = {"pwd", "ls", "echo", "mkdir", "head", "tail", "rm", "time", "cat", "vi", "find", "clear", "rmdir", "ps"};
+//여기 명령어를 추가하고, 위의 수를 1 늘이면 동작 가능하다
+char *standardUnixProgram[] = {"ls", "mkdir", "rm", "echo", "cat", "head", "tail", "time", "pwd", "vi", "find", "clear", "rmdir", "ps"};
 
 void shell_loop(void);					// exit명령 전까지 miniShell을 반복한다.
 void PathDisplay(void);					// [시간:분:초]아이디@경로> 출력
