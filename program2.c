@@ -22,7 +22,7 @@ int *gather_ints(char *command);
 void merge(int data[], int p, int q, int r);
 void merge_after_merge(int nums[], int nop, int step, int numPerProcess, int numOfNumbers);
 
-#define MAX_LENGTH 6000
+#define MAX_LENGTH 60000
 #define READ 0
 #define WRITE 1
 
@@ -194,6 +194,7 @@ int main(int argc, char *argv[])
     printf("%d\n", ms);
 
     free(num_list);
+    free(read);
 
     return 0;
 }
