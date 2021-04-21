@@ -43,9 +43,9 @@ int main(int argc, char *argv[])
 
     scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
-    int num_list[numOfNumbers + 1];
+    int *num_list = (int *)malloc(sizeof(int) * (numOfNumbers + 1));
 
-    int numbers;
+    int numbers = 0;
 
     for (int i = 0; i < numOfNumbers; i++)
     {
@@ -80,11 +80,6 @@ int main(int argc, char *argv[])
     {
         // 각각의 쓰레드에 merge_sort_at_thread함수를 실행하도록 한다. 공유하는 데이터는 인자로 넘겨줄 필요가 없다. 함수에게는 i를 전달한다.
         int res = pthread_create(&threads[i], NULL, merge_sort_at_thread, (void *)(long)i);
-        if (res)
-        {
-            printf("os-kim - error : %d\n", res);
-            exit(-1);
-        }
     }
 
     for (int i = 0; i < numOfThread + 1; i++)

@@ -43,8 +43,7 @@ int main(int argc, char *argv[])
 
     scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
-    int num_list[numOfNumbers + 1];
-
+    int *num_list = (int *)malloc(sizeof(int) * (numOfNumbers + 1));
     int numbers;
 
     for (int i = 0; i < numOfNumbers; i++)
@@ -60,7 +59,7 @@ int main(int argc, char *argv[])
 
     // ---------------------입력받기 완료------------------
 
-    int data[numOfNumbers + 1];
+    int *data = (int *)malloc(sizeof(int) * (numOfNumbers + 1));
 
     struct timeval stop, start_time;
     gettimeofday(&start_time, NULL);
@@ -194,6 +193,8 @@ int main(int argc, char *argv[])
     printf("\n");
     printf("%d\n", ms);
 
+    free(num_list);
+
     return 0;
 }
 
@@ -237,8 +238,7 @@ void work_process(int *data, int end)
 int *gather_ints(char *command)
 {
     int position = 0;
-    int no_of_tokens = 64;
-    int *tokens = malloc(sizeof(int *) * no_of_tokens);
+    int *tokens = malloc(sizeof(int *) * 100);
     char delim[3] = " \n";
 
     char *token = strtok(command, delim);

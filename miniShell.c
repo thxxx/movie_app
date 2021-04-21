@@ -345,21 +345,21 @@ Standard Unix Program
 */
 int shell_execute_sup(char **args)
 {
-	char **argv = malloc(sizeof(char *) * 50);
+	char **cmd = malloc(sizeof(char *) * 1000);
 	int i = 0;
 	while (args[i] != NULL)
 	{
-		argv[i] = args[i];
+		cmd[i] = args[i];
 		i++;
 	}
-	argv[i] = (char *)0; // 마지막엔 null 포인터를 넣어준다.
+	cmd[i] = (char *)0; // 마지막엔 null 포인터를 넣어준다.
 
 	pid_t pid = fork(); // 부모 프로세스의 메모리를 복제한 자식 프로세스 생성
 
 	if (pid == 0)
 	{
 		// child process
-		if (execvp(argv[0], argv) < 0)
+		if (execvp(cmd[0], cmd) < 0)
 			exit(0); // 명령어 실행하고 문제있으면 exit
 	}
 	else if (pid > 0)
@@ -368,12 +368,12 @@ int shell_execute_sup(char **args)
 		int status;
 		// parent process
 		pid = waitpid(pid, &status, 0); // wait child. 이번엔 wait를 사용
-		free(argv);
+		free(cmd);
 		return 1;
 	}
 	else
 	{ // pid가 음수값이라면 fork시 error가 발생한 것.
-		free(argv);
+		free(cmd);
 		perror(" forling error");
 	}
 	return 1;
@@ -388,13 +388,13 @@ int shell_execute_program(char **args)
 	pid_t pid = fork();
 
 	int k = 0;
-	char *argv[20];
+	char *cmd[20];
 	while (args[k] != NULL)
 	{
-		argv[k] = (char *)args[k];
+		cmd[k] = (char *)args[k];
 		k++;
 	}
-	argv[k] = NULL;
+	cmd[k] = NULL;
 
 	int status;
 
@@ -424,7 +424,7 @@ int shell_execute_program(char **args)
 					i++;
 				}
 
-				if (execvp(argv[0], argv) < 0)
+				if (execvp(cmd[0], cmd) < 0)
 					exit(0);
 			}
 			else if (strcmp(args[i], ">") == 0)
@@ -435,13 +435,13 @@ int shell_execute_program(char **args)
 
 				close(out);
 
-				if (execvp(argv[0], argv) < 0)
+				if (execvp(cmd[0], cmd) < 0)
 					exit(0);
 			}
 			i++;
 		}
 
-		execvp(argv[0], argv);
+		execvp(cmd[0], cmd);
 		exit(1);
 	}
 	else if (pid > 0)
