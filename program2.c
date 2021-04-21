@@ -239,7 +239,7 @@ void work_process(int *data, int end)
 int *gather_ints(char *command)
 {
     int position = 0;
-    int *tokens = malloc(sizeof(int *) * 100);
+    int *tokens = malloc(sizeof(int *) * MAX_LENGTH);
     char delim[3] = " \n";
 
     char *token = strtok(command, delim);
