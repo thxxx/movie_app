@@ -25,7 +25,7 @@ void merge_after_merge(int nums[], int nop, int step);
 void merge(int data[], int p, int q, int r);
 
 int numOfThread = 1;
-int gloNumList[100];
+int gloNumList[3000];
 
 int numOfNumbers = 0;
 int numPerThread = 0;
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 
     scanf("%d", &numOfNumbers); // 첫 입력은 전체 숫자의 갯수로 따로 저장한다.
 
-    int *num_list = (int *)malloc(sizeof(int) * (numOfNumbers + 1));
+    int *num_list = (int *)malloc(sizeof(int) * (numOfNumbers + 10));
 
     int numbers = 0;
 

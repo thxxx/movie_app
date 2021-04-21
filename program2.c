@@ -194,8 +194,6 @@ int main(int argc, char *argv[])
     printf("%d\n", ms);
 
     free(num_list);
-    free(read);
-
     return 0;
 }
 
